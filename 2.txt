@@ -1,0 +1,240 @@
+Below is the 2‑part coordinates system:
+
+- Part A: A 3‑dimensional spatial block (x/y/z or lat/lon/elevation)  
+- Part B: A higher‑dimensional relational block (dimensions 4+), representing hyperspatial relationships, embeddings, or manifold coordinates
+
+Both parts are independent, self‑contained, and referenced by the main Coordinates Schema.
+
+This gives you:
+
+- A clean separation between classical 3D space and higher‑dimensional structure  
+- A composable coordinates object  
+- A dimension‑faithful representation that aligns with your 10‑dimensional engine  
+- A fourth schema that lists entities associated with coordinates (already built)
+
+---
+
+🌐 1. High‑Level Architecture
+
+`
+Coordinates Schema
+├── Spatial3D Schema (Part A)
+└── HyperSpatial Schema (Part B)
+`
+
+The Coordinates Schema becomes a container that references two independent sub‑schemas:
+
+- Spatial3D — classical physical location  
+- HyperSpatial — dimensions 4+ (relationships, embeddings, hyperspherical coordinates, etc.)
+
+This keeps everything modular and DAG‑safe.
+
+---
+
+🧱 2. Spatial3D Schema (coordinates.3d.schema.json)
+Pure 3D physical space. No higher dimensions.
+
+`json
+{
+  "$id": "https://schemas.lme/coordinates/3d/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME 3D Spatial Coordinates",
+  "type": "object",
+
+  "properties": {
+    "coordinate_system": {
+      "type": "string",
+      "enum": ["WGS84", "Cartesian3D", "ECEF"]
+    },
+
+    "point_3d": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      },
+      "required": ["x", "y", "z"]
+    },
+
+    "precision_m": { "type": ["number", "null"] },
+    "elevation_m": { "type": ["number", "null"] },
+
+    "spatial_context": {
+      "type": "object",
+      "properties": {
+        "geohash": { "type": ["string", "null"] },
+        "plus_code": { "type": ["string", "null"] }
+      }
+    }
+  },
+
+  "required": ["coordinatesystem", "point3d"]
+}
+`
+
+This schema is fully self‑contained and can be used independently.
+
+---
+
+🌀 3. HyperSpatial Schema (coordinates.hyper.schema.json)
+Dimensions 4 and above. Hyperspherical, relational, or manifold coordinates.
+
+This schema is intentionally flexible because higher‑dimensional spaces vary by application.
+
+`json
+{
+  "$id": "https://schemas.lme/coordinates/hyper/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Higher-Dimensional Coordinates",
+  "type": "object",
+
+  "properties": {
+    "dimension_count": {
+      "type": "integer",
+      "minimum": 4,
+      "description": "Total number of spatial dimensions represented."
+    },
+
+    "coordinates": {
+      "type": "array",
+      "items": { "type": "number" },
+      "description": "List of coordinate values for dimensions 4 and above."
+    },
+
+    "coordinate_labels": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Optional labels for each higher dimension."
+    },
+
+    "hyperspherical": {
+      "type": ["object", "null"],
+      "properties": {
+        "radius": { "type": "number" },
+        "angles": {
+          "type": "array",
+          "items": { "type": "number" }
+        }
+      }
+    },
+
+    "manifold_reference": {
+      "type": ["string", "null"],
+      "description": "Reference to a manifold definition or embedding space."
+    }
+  },
+
+  "required": ["dimension_count", "coordinates"]
+}
+`
+
+This schema is also self‑contained and can be used without the 3D block.
+
+---
+
+🧭 4. Updated Coordinates Schema (coordinates.schema.json)
+Now references both 3D and HyperSpatial schemas.
+
+`json
+{
+  "$id": "https://schemas.lme/coordinates/1.1.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Composite Coordinates Schema",
+  "type": "object",
+
+  "properties": {
+    "coordinates_version": { "type": "string" },
+    "coordinates_id": { "type": "string" },
+
+    "spatial_3d": {
+      "$ref": "https://schemas.lme/coordinates/3d/1.0.0"
+    },
+
+    "hyper_spatial": {
+      "$ref": "https://schemas.lme/coordinates/hyper/1.0.0"
+    },
+
+    "temporal": {
+      "type": "object",
+      "properties": {
+        "valid_from": { "type": ["string", "null"], "format": "date-time" },
+        "valid_to": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+
+    "links": {
+      "type": "object",
+      "properties": {
+        "more_info": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      }
+    }
+  },
+
+  "required": [
+    "coordinates_version",
+    "coordinates_id",
+    "spatial_3d",
+    "hyper_spatial",
+    "meta"
+  ]
+}
+`
+
+This schema is now a composite that joins the two independent coordinate systems.
+
+---
+
+🗂️ 5. How This Fits Into the LME Architecture
+
+Entity Schema
+Still independent. No coordinates.
+
+Coordinates Schema
+Now composed of:
+
+- Spatial3D (Part A)  
+- HyperSpatial (Part B)
+
+Record Schema
+Still references:
+
+- entity_ref
+- coordinates_ref
+
+Association Schema
+Still lists entities associated with coordinates.
+
+Everything remains:
+
+- Atomic  
+- Composable  
+- DAG‑safe  
+- Dimension‑faithful  
+- Extensible to 10D or more
+
+---
+
+🧠 6. Why This Works Perfectly for the 10‑Dimensional Engine
+
+- You get explicit separation between classical 3D and higher‑dimensional structure.  
+- You can treat dimensions 4–10 as:
+  - hyperspherical angles  
+  - manifold coordinates  
+  - embedding vectors  
+  - relational dimensions  
+- You can collapse or expand dimensions as needed.  
+- You can compare entities in 3D, 10D, or hybrid modes.  
+- You can attach multiple hyper‑coordinate sets to the same 3D point.
