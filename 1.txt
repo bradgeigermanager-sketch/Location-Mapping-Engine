@@ -1,0 +1,348 @@
+Below are the full JSON Schema definitions for all four LME schemas, rendered in a clean, atomic, self‑contained, and reference‑ready form.  
+Each schema is independent, versioned, and composable, matching the architectural requirement that:
+
+- Entity Schema stands alone  
+- Coordinates Schema stands alone  
+- Record Schema joins the two  
+- Association Schema indexes coordinate→entity relationships  
+
+Every schema is structured so you can drop it directly into a schema library, validate with any JSON Schema validator, and use $ref to compose them into DAG‑safe systems.
+
+---
+
+📘 1. Entity Schema (entity.schema.json)
+Self‑contained. No coordinates. No record references.
+
+`json
+{
+  "$id": "https://schemas.lme/entity/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Entity Schema",
+  "type": "object",
+
+  "properties": {
+    "entity_version": { "type": "string" },
+    "entity_id": { "type": "string" },
+    "entity_type": {
+      "type": "string",
+      "enum": ["person", "place", "thing", "organization"]
+    },
+    "name": { "type": "string" },
+    "aliases": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+
+    "classification": {
+      "type": "object",
+      "properties": {
+        "categories": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["categories", "tags"]
+    },
+
+    "entity_details": {
+      "type": "object",
+      "description": "Type-specific details for person/place/thing/organization"
+    },
+
+    "links": {
+      "type": "object",
+      "properties": {
+        "same_as": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "parent": { "type": ["string", "null"] },
+        "children": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["same_as", "parent", "children"]
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "entity_version",
+    "entity_id",
+    "entity_type",
+    "name",
+    "classification",
+    "entity_details",
+    "links",
+    "meta"
+  ]
+}
+`
+
+---
+
+📗 2. Coordinates Schema (coordinates.schema.json)
+Standalone spatial object. No entity references.
+
+`json
+{
+  "$id": "https://schemas.lme/coordinates/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Coordinates Schema",
+  "type": "object",
+
+  "properties": {
+    "coordinates_version": { "type": "string" },
+    "coordinates_id": { "type": "string" },
+
+    "coordinate_system": { "type": "string" },
+
+    "point": {
+      "type": "object",
+      "properties": {
+        "lat": { "type": "number" },
+        "lon": { "type": "number" }
+      },
+      "required": ["lat", "lon"]
+    },
+
+    "elevation_m": { "type": ["number", "null"] },
+    "precision_m": { "type": ["number", "null"] },
+
+    "spatial_context": {
+      "type": "object",
+      "properties": {
+        "geohash": { "type": ["string", "null"] },
+        "plus_code": { "type": ["string", "null"] },
+        "bounding_box": {
+          "type": ["object", "null"],
+          "properties": {
+            "min_lat": { "type": "number" },
+            "min_lon": { "type": "number" },
+            "max_lat": { "type": "number" },
+            "max_lon": { "type": "number" }
+          },
+          "required": ["minlat", "minlon", "maxlat", "maxlon"]
+        }
+      }
+    },
+
+    "temporal": {
+      "type": "object",
+      "properties": {
+        "valid_from": { "type": ["string", "null"], "format": "date-time" },
+        "valid_to": { "type": ["string", "null"], "format": "date-time" }
+      }
+    },
+
+    "links": {
+      "type": "object",
+      "properties": {
+        "more_info": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["more_info"]
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "coordinates_version",
+    "coordinates_id",
+    "coordinate_system",
+    "point",
+    "spatial_context",
+    "temporal",
+    "links",
+    "meta"
+  ]
+}
+`
+
+---
+
+📙 3. Record Schema (record.schema.json)
+Join layer: entityref + coordinatesref + provenance.
+
+`json
+{
+  "$id": "https://schemas.lme/record/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Record Schema",
+  "type": "object",
+
+  "properties": {
+    "record_version": { "type": "string" },
+    "record_id": { "type": "string" },
+
+    "entity_ref": { "type": "string" },
+    "coordinates_ref": { "type": "string" },
+
+    "temporal": {
+      "type": "object",
+      "properties": {
+        "valid_from": { "type": "string", "format": "date-time" },
+        "valid_to": { "type": ["string", "null"], "format": "date-time" },
+        "last_updated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["validfrom", "lastupdated"]
+    },
+
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source_id": { "type": "string" },
+          "type": { "type": "string" },
+          "label": { "type": "string" },
+          "uri": { "type": "string" },
+          "retrieved_at": { "type": "string", "format": "date-time" },
+          "confidence": { "type": "number" }
+        },
+        "required": ["sourceid", "type", "label", "uri", "retrievedat"]
+      }
+    },
+
+    "related_info": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "relation_type": { "type": "string" },
+          "label": { "type": "string" },
+          "uri": { "type": "string" },
+          "protocol": { "type": "string" },
+          "format": { "type": "string" }
+        },
+        "required": ["relation_type", "label", "uri"]
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "record_version",
+    "record_id",
+    "entity_ref",
+    "coordinates_ref",
+    "temporal",
+    "sources",
+    "related_info",
+    "meta"
+  ]
+}
+`
+
+---
+
+📒 4. Coordinate‑Entity Association Schema (association.schema.json)
+Reverse index: which entities are associated with a coordinate.
+
+`json
+{
+  "$id": "https://schemas.lme/association/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Coordinate-Entity Association Schema",
+  "type": "object",
+
+  "properties": {
+    "association_version": { "type": "string" },
+    "association_id": { "type": "string" },
+
+    "coordinates_ref": { "type": "string" },
+
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "entity_ref": { "type": "string" },
+          "record_ref": { "type": "string" },
+          "temporal": {
+            "type": "object",
+            "properties": {
+              "from": { "type": "string", "format": "date-time" },
+              "to": { "type": ["string", "null"], "format": "date-time" }
+            },
+            "required": ["from"]
+          }
+        },
+        "required": ["entityref", "recordref", "temporal"]
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "association_version",
+    "association_id",
+    "coordinates_ref",
+    "entities",
+    "meta"
+  ]
+}
+`
+
+---
+
+📌 What You Now Have
+
+You now have a complete, production‑ready, four‑schema LME system:
+
+- Entity Schema — identity  
+- Coordinates Schema — spatial object  
+- Record Schema — fact binding entity↔coordinates  
+- Association Schema — reverse index  
+
+All four are:
+
+- Atomic  
+- Composable  
+- DAG‑safe  
+- Versioned  
+- Explicit  
+- Extensible 
