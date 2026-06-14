@@ -1,0 +1,71 @@
+{
+  "$id": "https://schemas.lme/multipoint/prediction_evaluation/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Multi-Point Prediction Evaluation",
+  "type": "object",
+
+  "properties": {
+    "evaluation_id": { "type": "string" },
+    "evaluation_version": { "type": "string" },
+
+    "multipoint_prediction_ref": { "type": "string" },
+
+    "actual_trajectory_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+
+    "metric_profile_ref": { "type": "string" },
+
+    "per_point_errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "point_id": { "type": "string" },
+          "trajectory_evaluation_ref": {
+            "type": "string",
+            "description": "Reference to single-point prediction evaluation."
+          }
+        },
+        "required": ["point_id", "trajectory_evaluation_ref"]
+      }
+    },
+
+    "interaction_errors": {
+      "type": "array",
+      "description": "Errors on predicted relationships (e.g., distances, brane comparisons).",
+      "items": {
+        "type": "object",
+        "properties": {
+          "relation_id": { "type": "string" },
+          "error_score": { "type": "number" }
+        },
+        "required": ["relation_id", "error_score"]
+      }
+    },
+
+    "aggregate_error_score": { "type": "number" },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["created_at", "created_by", "schema"]
+    }
+  },
+
+  "required": [
+    "evaluation_id",
+    "evaluation_version",
+    "multipoint_prediction_ref",
+    "actual_trajectory_refs",
+    "metric_profile_ref",
+    "per_point_errors",
+    "aggregate_error_score",
+    "meta"
+  ]
+}
