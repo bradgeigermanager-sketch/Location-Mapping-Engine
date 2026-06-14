@@ -1,0 +1,213 @@
+Overview
+
+Here’s a single, cohesive engine that:
+
+- Takes 2 points, each with 10 dimensions  
+- Uses a metric profile  
+- Produces a fully structured instantaneous comparison  
+
+Dimensions:
+
+- 1–3: 3D space  
+- 4: scalar separation  
+- 5–10: brane dimensions  
+
+---
+
+1. Data structures
+
+1.1 Point10D
+
+`json
+{
+  "point_id": "P1",
+  "coords_3d": { "x": 0.0, "y": 0.0, "z": 0.0 },
+  "d4": 0.5,
+  "brane_dims": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]  // dims 5–10
+}
+`
+
+1.2 MetricProfile (minimal for this engine)
+
+`json
+{
+  "metricprofileid": "mp-1",
+  "weights": {
+    "gamma_3d": 1.0,
+    "gamma_4": 1.0,
+    "gamma_static": 1.0,
+    "gamma_angle": 1.0
+  }
+}
+`
+
+1.3 ComparisonResult
+
+`json
+{
+  "pointaid": "P1",
+  "pointbid": "P2",
+
+  "d3_euclidean": 0.0,
+  "d3_manhattan": 0.0,
+  "d3_chebyshev": 0.0,
+  "d3directionvector": [0.0, 0.0, 0.0],
+
+  "d4_relative": 0.0,
+
+  "branestaticdistances": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+  "branestaticangles": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+
+  "compositestaticdistance": 0.0,
+  "compositeangledistance": 0.0,
+
+  "total_distance": 0.0
+}
+`
+
+---
+
+2. Algorithms
+
+Let the two points be \(A\) and \(B\).
+
+2.1 3D (dimensions 1–3)
+
+Let \(A{3D} = (xA, yA, zA)\), \(B{3D} = (xB, yB, zB)\).
+
+- Direction vector  
+  \[
+  \vec{v} = (xB - xA,\; yB - yA,\; zB - zA)
+  \]
+
+- Euclidean  
+  \[
+  D{3D} = \sqrt{(xB - xA)^2 + (yB - yA)^2 + (zB - z_A)^2}
+  \]
+
+- Manhattan  
+  \[
+  M{3D} = |xB - xA| + |yB - yA| + |zB - z_A|
+  \]
+
+- Chebyshev  
+  \[
+  C{3D} = \max\big(|xB - xA|,\; |yB - yA|,\; |zB - z_A|\big)
+  \]
+
+2.2 Dimension 4
+
+Let \(d4A, d4B\) be the scalar values.
+
+\[
+D4 = |d4B - d4_A|
+\]
+
+2.3 Brane dimensions 5–10
+
+Let \(Ak, Bk\) be the values for dimension \(k\) (from 5 to 10).
+
+- Per‑dimension static distance  
+  \[
+  \Delta dk = |Bk - A_k|
+  \]
+
+- Per‑dimension angle (treating each as scalar axis; simplest form is just angle from origin difference, but for a cohesive engine we can define angle between 1D “vectors” as):  
+  \[
+  \Delta \thetak = \arctan(Bk) - \arctan(A_k)
+  \]
+
+Collect into arrays:
+
+- branestaticdistances[k-5] = Δd_k  
+- branestaticangles[k-5] = Δθ_k
+
+- Composite static distance  
+  \[
+  D{\text{static}} = \sqrt{\sum{k=5}^{10} (\Delta d_k)^2}
+  \]
+
+- Composite angle distance  
+  \[
+  D{\theta} = \sqrt{\sum{k=5}^{10} (\Delta \theta_k)^2}
+  \]
+
+2.4 Total distance (metric‑weighted)
+
+From metric profile weights:
+
+- \(\gamma{3D} = \text{weights.gamma\3d}\)  
+- \(\gamma4 = \text{weights.gamma\4}\)  
+- \(\gammas = \text{weights.gamma\static}\)  
+- \(\gammaa = \text{weights.gamma\angle}\)
+
+\[
+D_{\text{total}} =
+\sqrt{
+\gamma{3D} D{3D}^2 +
+\gamma4 D4^2 +
+\gammas D{\text{static}}^2 +
+\gammaa D{\theta}^2
+}
+\]
+
+---
+
+3. Engine pseudocode
+
+`python
+def comparepoints10d(pointA, pointB, metric_profile):
+    # 3D
+    dx = pointB["coords3d"]["x"] - pointA["coords3d"]["x"]
+    dy = pointB["coords3d"]["y"] - pointA["coords3d"]["y"]
+    dz = pointB["coords3d"]["z"] - pointA["coords3d"]["z"]
+
+    d3_direction = [dx, dy, dz]
+    d3_euclidean = (dx2 + dy2 + dz2)  0.5
+    d3_manhattan = abs(dx) + abs(dy) + abs(dz)
+    d3_chebyshev = max(abs(dx), abs(dy), abs(dz))
+
+    # D4
+    d4_relative = abs(pointB["d4"] - pointA["d4"])
+
+    # Brane dims 5–10
+    braneA = pointA["brane_dims"]  # len 6
+    braneB = pointB["brane_dims"]  # len 6
+
+    branestaticdistances = []
+    branestaticangles = []
+
+    import math
+
+    for a, b in zip(braneA, braneB):
+        dd = abs(b - a)
+        da = math.atan(b) - math.atan(a)
+        branestaticdistances.append(dd)
+        branestaticangles.append(da)
+
+    compositestatic = (sum(dd2 for dd in branestatic_distances))  0.5
+    compositeangle = (sum(da2 for da in branestatic_angles))  0.5
+
+    w = metric_profile["weights"]
+    total_distance = (
+        w["gamma3d"]  d3euclidean*2 +
+        w["gamma4"]  d4relative*2 +
+        w["gammastatic"]  compositestatic*2 +
+        w["gammaangle"]  compositeangle*2
+    )  0.5
+
+    return {
+        "pointaid": pointA["point_id"],
+        "pointbid": pointB["point_id"],
+        "d3euclidean": d3euclidean,
+        "d3manhattan": d3manhattan,
+        "d3chebyshev": d3chebyshev,
+        "d3directionvector": d3_direction,
+        "d4relative": d4relative,
+        "branestaticdistances": branestaticdistances,
+        "branestaticangles": branestaticangles,
+        "compositestaticdistance": composite_static,
+        "compositeangledistance": composite_angle,
+        "totaldistance": totaldistance
+    }
+`
