@@ -1,0 +1,295 @@
+Below is the complete, top‑level Scenario Simulation Engine for the LME system — the layer that runs scenarios forward in time, using:
+
+- multi‑point predictive models  
+- interaction graphs  
+- brane‑space dynamics  
+- metric profiles  
+- and scenario‑level rules  
+
+This is the execution engine that produces scenario trajectories, outcomes, and state transitions.
+
+---
+
+⭐ Scenario Simulation Engine Schema
+This schema defines the engine itself — its configuration, rules, and execution parameters.
+
+`json
+{
+  "$id": "https://schemas.lme/scenario/simulation_engine/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Scenario Simulation Engine",
+  "type": "object",
+
+  "properties": {
+    "engine_id": { "type": "string" },
+    "engine_version": { "type": "string" },
+
+    "scenario_ref": { "type": "string" },
+    "metricprofileref": { "type": "string" },
+    "multipointmodelref": { "type": "string" },
+
+    "simulation_parameters": {
+      "type": "object",
+      "properties": {
+        "timestepseconds": { "type": "number" },
+        "totaldurationseconds": { "type": "number" },
+        "integration_method": {
+          "type": "string",
+          "enum": ["euler", "rk4", "adaptive"]
+        },
+        "stochastic_mode": {
+          "type": "string",
+          "enum": ["none", "gaussiannoise", "interactionnoise"]
+        },
+        "random_seed": { "type": ["number", "null"] }
+      },
+      "required": [
+        "timestepseconds",
+        "totaldurationseconds",
+        "integration_method",
+        "stochastic_mode"
+      ]
+    },
+
+    "event_rules": {
+      "type": "array",
+      "description": "Rules that trigger events during simulation.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rule_id": { "type": "string" },
+          "trigger_condition": { "type": "string" },
+          "action": { "type": "string" }
+        },
+        "required": ["ruleid", "triggercondition", "action"]
+      }
+    },
+
+    "output_configuration": {
+      "type": "object",
+      "properties": {
+        "recordintermediatestates": { "type": "boolean" },
+        "record_interactions": { "type": "boolean" },
+        "record_events": { "type": "boolean" }
+      },
+      "required": [
+        "recordintermediatestates",
+        "record_interactions",
+        "record_events"
+      ]
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "engine_id",
+    "engine_version",
+    "scenario_ref",
+    "metricprofileref",
+    "multipointmodelref",
+    "simulation_parameters",
+    "output_configuration",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ Scenario Simulation Run Schema
+This stores the actual execution of a simulation.
+
+`json
+{
+  "$id": "https://schemas.lme/scenario/simulation_run/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Scenario Simulation Run",
+  "type": "object",
+
+  "properties": {
+    "run_id": { "type": "string" },
+    "run_version": { "type": "string" },
+
+    "engine_ref": { "type": "string" },
+    "scenario_ref": { "type": "string" },
+
+    "start_timestamp": { "type": "string", "format": "date-time" },
+    "end_timestamp": { "type": "string", "format": "date-time" },
+
+    "intermediate_states": {
+      "type": "array",
+      "description": "Snapshots of the scenario state at each time step.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+          "statevectorref": { "type": "string" },
+          "interactionstateref": { "type": ["string", "null"] }
+        },
+        "required": ["timestamp", "statevectorref"]
+      }
+    },
+
+    "triggered_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "event_id": { "type": "string" },
+          "rule_id": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "details": { "type": "string" }
+        },
+        "required": ["eventid", "ruleid", "timestamp"]
+      }
+    },
+
+    "finalstatesummary": {
+      "type": "object",
+      "properties": {
+        "finalcentroid3d": {
+          "type": "array",
+          "items": { "type": "number" }
+        },
+        "finalcentroidbrane": {
+          "type": "array",
+          "items": { "type": "number" }
+        },
+        "finalspread3d": { "type": "number" },
+        "finalspreadbrane": { "type": "number" }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "run_id",
+    "run_version",
+    "engine_ref",
+    "scenario_ref",
+    "start_timestamp",
+    "end_timestamp",
+    "intermediate_states",
+    "finalstatesummary",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ Scenario Simulation Algorithms
+
+A. State Vector Construction
+Each point contributes:
+
+- 3D coordinates  
+- 4D separation  
+- 5D+ brane coordinates  
+
+Stacked into:
+
+\[
+\mathbf{S}(t) = [s1(t), s2(t), \dots, s_N(t)]^\top
+\]
+
+---
+
+B. Time Integration
+
+Euler
+\[
+\mathbf{S}(t+\Delta t) = \mathbf{S}(t) + \Delta t \cdot F(\mathbf{S}(t))
+\]
+
+RK4
+\[
+\mathbf{S}(t+\Delta t) = \mathbf{S}(t) + \frac{1}{6}(k1 + 2k2 + 2k3 + k4)
+\]
+
+Adaptive
+Adjust \(\Delta t\) based on error estimates.
+
+---
+
+C. Interaction Graph Dynamics
+
+For each point \(i\):
+
+\[
+si(t+\Delta t) = f\Big(si(t), \{sj(t)\}{j \in \mathcal{N}(i)}\Big)
+\]
+
+Where \(\mathcal{N}(i)\) is defined in the scenario’s interaction graph.
+
+---
+
+D. Event Rules
+
+Each rule has:
+
+- trigger_condition (boolean expression over state)  
+- action (modify state, spawn event, change parameters)
+
+Example:
+
+- Trigger: distance between two points < threshold  
+- Action: apply repulsion force or merge trajectories  
+
+---
+
+E. Scenario Spread Metrics
+
+3D spread
+\[
+\text{spread}{3D} = \sqrt{\frac{1}{N}\sumi \|x_i - \bar{x}\|^2}
+\]
+
+Brane spread
+\[
+\text{spread}{brane} = \sqrt{\frac{1}{N}\sumi \|\mathbf{b}_i - \bar{\mathbf{b}}\|^2}
+\]
+
+---
+
+F. Final State Summary
+
+Includes:
+
+- final centroid  
+- final spread  
+- final interaction structure  
+- final brane configuration  
+
+---
+
+⭐ What You Now Have
+
+You now have the complete scenario simulation engine, including:
+
+- Simulation engine schema  
+- Simulation run schema  
+- Full simulation algorithms  
+- Event system  
+- Interaction graph dynamics  
+- Scenario‑level state summaries  
+
+This is the top‑level execution layer of the entire LME predictive architecture.
