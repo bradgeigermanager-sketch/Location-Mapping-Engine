@@ -1,0 +1,196 @@
+Predictive trajectory model schema
+
+`json
+{
+  "$id": "https://schemas.lme/trajectory/predictive_model/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Predictive Trajectory Model",
+  "type": "object",
+
+  "properties": {
+    "model_id": { "type": "string" },
+    "model_version": { "type": "string" },
+
+    "trajectory_ref": {
+      "type": "string",
+      "description": "Reference to the base trajectory used for training or initialization."
+    },
+
+    "metricprofileref": {
+      "type": "string",
+      "description": "Metric profile used for distance and error calculations."
+    },
+
+    "model_type": {
+      "type": "string",
+      "enum": ["linear", "polynomial", "statespace", "mlcustom"],
+      "description": "Family of predictive model."
+    },
+
+    "timehorizonseconds": {
+      "type": "number",
+      "description": "Maximum prediction horizon."
+    },
+
+    "parameters": {
+      "type": "object",
+      "description": "Model-specific parameters.",
+      "properties": {
+        "linear_3d": {
+          "type": ["object", "null"],
+          "properties": {
+            "velocity_vector": {
+              "type": "array",
+              "items": { "type": "number" }
+            }
+          }
+        },
+        "brane_linear": {
+          "type": ["object", "null"],
+          "properties": {
+            "d4_rate": { "type": "number" },
+            "branedim5plusrates": {
+              "type": "array",
+              "items": { "type": "number" }
+            }
+          }
+        },
+        "state_space": {
+          "type": ["object", "null"],
+          "properties": {
+            "state_dimension": { "type": "integer" },
+            "transition_matrix": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": { "type": "number" }
+              }
+            },
+            "control_matrix": {
+              "type": ["array", "null"],
+              "items": {
+                "type": "array",
+                "items": { "type": "number" }
+              }
+            }
+          }
+        },
+        "mlcustomreference": {
+          "type": ["string", "null"],
+          "description": "Reference to external ML model."
+        }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "model_id",
+    "model_version",
+    "trajectory_ref",
+    "metricprofileref",
+    "model_type",
+    "timehorizonseconds",
+    "parameters",
+    "meta"
+  ]
+}
+`
+
+---
+
+Predictive trajectory prediction schema
+
+`json
+{
+  "$id": "https://schemas.lme/trajectory/prediction/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Predictive Trajectory Prediction",
+  "type": "object",
+
+  "properties": {
+    "prediction_id": { "type": "string" },
+    "prediction_version": { "type": "string" },
+
+    "predictivemodelref": { "type": "string" },
+    "basetrajectoryref": { "type": "string" },
+
+    "predictionstarttimestamp": { "type": "string", "format": "date-time" },
+    "predictionendtimestamp": { "type": "string", "format": "date-time" },
+
+    "predicted_samples": {
+      "type": "array",
+      "description": "Predicted future states.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+
+          "predicted3dcoordinates": {
+            "type": "object",
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" },
+              "z": { "type": "number" }
+            },
+            "required": ["x", "y", "z"]
+          },
+
+          "predictedd4separation": { "type": "number" },
+
+          "predictedbranedim5plus_coordinates": {
+            "type": "array",
+            "items": { "type": "number" }
+          }
+        },
+        "required": [
+          "timestamp",
+          "predicted3dcoordinates",
+          "predictedd4separation",
+          "predictedbranedim5plus_coordinates"
+        ]
+      }
+    },
+
+    "prediction_quality": {
+      "type": "object",
+      "properties": {
+        "expectederror3d": { "type": ["number", "null"] },
+        "expectederror4d": { "type": ["number", "null"] },
+        "expectederror5plus": { "type": ["number", "null"] }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "prediction_id",
+    "prediction_version",
+    "predictivemodelref",
+    "basetrajectoryref",
+    "predictionstarttimestamp",
+    "predictionendtimestamp",
+    "predicted_samples",
+    "prediction_quality",
+    "meta"
+  ]
+}
+`
