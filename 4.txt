@@ -1,0 +1,180 @@
+Concise takeaway:  
+The Record Schema now becomes a three‑way join:  
+1) an Entity,  
+2) a Composite Coordinates Object, and  
+3) a Brane Geometry Block that explicitly encodes 4D separation and 5D+ brane‑surface structure for comparison, alignment, and temporal reasoning.
+
+Below is the fully integrated, production‑ready schema—clean, atomic, and DAG‑safe—followed by a structured explanation of how brane geometry participates in the LME system.
+
+---
+
+🧱 Updated Record Schema (with Brane Geometry Integration)
+This is the new canonical record.schema.json, now referencing:
+
+- Entity Schema  
+- 3D Spatial Schema  
+- Hyperspatial Brane Schema  
+- Provenance + Temporal Validity
+
+`json
+{
+  "$id": "https://schemas.lme/record/2.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Record Schema (Entity ↔ Coordinates ↔ Brane Geometry)",
+  "type": "object",
+
+  "properties": {
+    "record_version": { "type": "string" },
+    "record_id": { "type": "string" },
+
+    "entity_ref": {
+      "type": "string",
+      "description": "Reference to an Entity Schema object."
+    },
+
+    "coordinates_ref": {
+      "type": "string",
+      "description": "Reference to a Composite Coordinates Schema object."
+    },
+
+    "brane_geometry": {
+      "$ref": "https://schemas.lme/coordinates/hyper/2.0.0",
+      "description": "Hyperspatial brane geometry block for dimensions 4+."
+    },
+
+    "temporal": {
+      "type": "object",
+      "properties": {
+        "valid_from": { "type": "string", "format": "date-time" },
+        "valid_to": { "type": ["string", "null"], "format": "date-time" },
+        "last_updated": { "type": "string", "format": "date-time" }
+      },
+      "required": ["validfrom", "lastupdated"]
+    },
+
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source_id": { "type": "string" },
+          "type": { "type": "string" },
+          "label": { "type": "string" },
+          "uri": { "type": "string" },
+          "retrieved_at": { "type": "string", "format": "date-time" },
+          "confidence": { "type": "number" }
+        },
+        "required": ["sourceid", "type", "label", "uri", "retrievedat"]
+      }
+    },
+
+    "related_info": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "relation_type": { "type": "string" },
+          "label": { "type": "string" },
+          "uri": { "type": "string" },
+          "protocol": { "type": "string" },
+          "format": { "type": "string" }
+        },
+        "required": ["relation_type", "label", "uri"]
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "record_version",
+    "record_id",
+    "entity_ref",
+    "coordinates_ref",
+    "brane_geometry",
+    "temporal",
+    "sources",
+    "related_info",
+    "meta"
+  ]
+}
+`
+
+---
+
+🧬 How Brane Geometry Integrates Into the Record Layer
+
+The Record Schema is the fact layer of the LME system.  
+By adding brane_geometry, each record now encodes:
+
+1. Classical 3D position
+From the spatial_3d block in the composite coordinates schema.
+
+2. 4D relational separation
+From d4_separation in the brane schema.  
+This is the fixed scalar differentiator you specified.
+
+3. 5D+ brane‑surface geometry
+From branecoordinates, branemetric, and optional hyperspherical structure.
+
+4. Temporal validity
+So brane relationships can evolve over time.
+
+5. Provenance
+So brane geometry is auditable and traceable.
+
+This makes the Record Schema the canonical join of:
+
+- identity  
+- physical space  
+- hyperspatial brane structure  
+- time  
+- provenance  
+
+Exactly the architecture you’ve been building toward.
+
+---
+
+🧭 Why This Integration Works
+
+✔ Atomic
+Brane geometry is a self‑contained block.
+
+✔ Composable
+The Record Schema references it without embedding 3D or hyper‑dimensional logic.
+
+✔ Deterministic
+Every record has a fixed brane geometry snapshot.
+
+✔ DAG‑safe
+No circular references; brane geometry never references entities.
+
+✔ Extensible
+You can add:
+
+- new brane metrics  
+- new manifold types  
+- new dimensional embeddings  
+
+without altering the Record Schema.
+
+---
+
+🧩 What You Can Build Next
+
+Here are the natural next steps, each as a Guided Link:
+
+- Definebranetobranedistancealgorithms  
+- Extendbranemetricintocomparisonengine  
+- Integrate3Dandbranegeometryintoqueryengine  
+- Addtemporalbraneevolutionmodels
+
+Which direction do you want to take?
