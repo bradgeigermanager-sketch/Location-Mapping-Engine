@@ -1,0 +1,355 @@
+The complete predictive‑trajectory system, fully integrated with the existing LME architecture.  
+This includes:
+
+- A Predictive Trajectory Model Schema  
+- A Prediction Output Schema  
+- A Prediction Evaluation Schema  
+- The mathematical algorithms used to generate predictions  
+- The similarity and error‑scoring functions used to evaluate them  
+
+Everything is atomic, DAG‑safe, and dimension‑explicit.
+
+---
+
+⭐ 1. Predictive Trajectory Model Schema
+This schema defines how predictions are generated.
+
+`json
+{
+  "$id": "https://schemas.lme/trajectory/predictive_model/1.1.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Predictive Trajectory Model",
+  "type": "object",
+
+  "properties": {
+    "model_id": { "type": "string" },
+    "model_version": { "type": "string" },
+
+    "trajectory_ref": {
+      "type": "string",
+      "description": "Reference to the trajectory used for training or initialization."
+    },
+
+    "metricprofileref": {
+      "type": "string",
+      "description": "Metric profile used for prediction error and distance calculations."
+    },
+
+    "model_type": {
+      "type": "string",
+      "enum": ["linear", "polynomial", "statespace", "mlcustom"]
+    },
+
+    "timehorizonseconds": { "type": "number" },
+
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "linear_3d": {
+          "type": ["object", "null"],
+          "properties": {
+            "velocity_vector": {
+              "type": "array",
+              "items": { "type": "number" }
+            }
+          }
+        },
+
+        "brane_linear": {
+          "type": ["object", "null"],
+          "properties": {
+            "d4_rate": { "type": "number" },
+            "branedim5plusrates": {
+              "type": "array",
+              "items": { "type": "number" }
+            }
+          }
+        },
+
+        "state_space": {
+          "type": ["object", "null"],
+          "properties": {
+            "state_dimension": { "type": "integer" },
+            "transition_matrix": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": { "type": "number" }
+              }
+            },
+            "control_matrix": {
+              "type": ["array", "null"],
+              "items": {
+                "type": "array",
+                "items": { "type": "number" }
+              }
+            }
+          }
+        },
+
+        "mlcustomreference": {
+          "type": ["string", "null"],
+          "description": "Reference to external ML model."
+        }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "model_id",
+    "model_version",
+    "trajectory_ref",
+    "metricprofileref",
+    "model_type",
+    "timehorizonseconds",
+    "parameters",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ 2. Predictive Trajectory Prediction Schema
+This schema stores the predicted future states.
+
+`json
+{
+  "$id": "https://schemas.lme/trajectory/prediction/1.1.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Predictive Trajectory Prediction",
+  "type": "object",
+
+  "properties": {
+    "prediction_id": { "type": "string" },
+    "prediction_version": { "type": "string" },
+
+    "predictivemodelref": { "type": "string" },
+    "basetrajectoryref": { "type": "string" },
+
+    "predictionstarttimestamp": { "type": "string", "format": "date-time" },
+    "predictionendtimestamp": { "type": "string", "format": "date-time" },
+
+    "predicted_samples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+
+          "predicted3dcoordinates": {
+            "type": "object",
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" },
+              "z": { "type": "number" }
+            },
+            "required": ["x", "y", "z"]
+          },
+
+          "predictedd4separation": { "type": "number" },
+
+          "predictedbranedim5plus_coordinates": {
+            "type": "array",
+            "items": { "type": "number" }
+          }
+        },
+        "required": [
+          "timestamp",
+          "predicted3dcoordinates",
+          "predictedd4separation",
+          "predictedbranedim5plus_coordinates"
+        ]
+      }
+    },
+
+    "prediction_quality": {
+      "type": "object",
+      "properties": {
+        "expectederror3d": { "type": ["number", "null"] },
+        "expectederror4d": { "type": ["number", "null"] },
+        "expectederror5plus": { "type": ["number", "null"] }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "prediction_id",
+    "prediction_version",
+    "predictivemodelref",
+    "basetrajectoryref",
+    "predictionstarttimestamp",
+    "predictionendtimestamp",
+    "predicted_samples",
+    "prediction_quality",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ 3. Prediction Evaluation Schema
+This schema stores how well the prediction matched the actual future trajectory.
+
+`json
+{
+  "$id": "https://schemas.lme/trajectory/prediction_evaluation/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Predictive Trajectory Evaluation",
+  "type": "object",
+
+  "properties": {
+    "evaluation_id": { "type": "string" },
+    "evaluation_version": { "type": "string" },
+
+    "prediction_ref": { "type": "string" },
+    "actualtrajectoryref": { "type": "string" },
+    "metricprofileref": { "type": "string" },
+
+    "error_components": {
+      "type": "object",
+      "properties": {
+        "error_3d": { "type": "number" },
+        "error_4d": { "type": "number" },
+        "error5plusstatic": { "type": "number" },
+        "error5plusdynamic": { "type": "number" }
+      },
+      "required": [
+        "error_3d",
+        "error_4d",
+        "error5plusstatic",
+        "error5plusdynamic"
+      ]
+    },
+
+    "totalerrorscore": { "type": "number" },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "evaluation_id",
+    "evaluation_version",
+    "prediction_ref",
+    "actualtrajectoryref",
+    "metricprofileref",
+    "error_components",
+    "totalerrorscore",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ 4. Predictive Algorithms (Complete Set)
+
+A. 3D prediction
+
+Linear
+\[
+\mathbf{x}(t+\Delta t) = \mathbf{x}(t) + \mathbf{v}\Delta t
+\]
+
+Polynomial
+\[
+\mathbf{x}(t+\Delta t) = a0 + a1 t + a_2 t^2 + \dots
+\]
+
+State‑space
+\[
+\mathbf{s}{t+1} = A\mathbf{s}t + B\mathbf{u}_t
+\]
+
+---
+
+B. 4D prediction
+
+\[
+d4(t+\Delta t) = d4(t) + \dot{d}_4 \Delta t
+\]
+
+---
+
+C. 5D+ brane prediction
+
+For each dimension \(k \ge 5\):
+
+Static coordinate prediction
+\[
+bk(t+\Delta t) = bk(t) + \dot{b}_k \Delta t
+\]
+
+Angle prediction
+\[
+\thetak(t+\Delta t) = \thetak(t) + \dot{\theta}_k \Delta t
+\]
+
+---
+
+⭐ 5. Prediction Error Algorithms
+
+Given predicted state \(P(t)\) and actual state \(A(t)\):
+
+3D error
+\[
+E{3D} = \|P{3D} - A_{3D}\|
+\]
+
+4D error
+\[
+E{4D} = |P4 - A_4|
+\]
+
+5D+ static error
+\[
+E{5+}^{static} = \sqrt{\sumk (Pk - Ak)^2}
+\]
+
+5D+ dynamic error
+\[
+E{5+}^{dynamic} = \sqrt{\sumk (\dot{P}k - \dot{A}k)^2}
+\]
+
+---
+
+⭐ 6. Total Prediction Error Score
+
+\[
+E_{\text{total}} =
+\gamma3 E{3D} +
+\gamma4 E{4D} +
+\gammas E{5+}^{static} +
+\gammad E{5+}^{dynamic}
+\]
+
+Weights come from the metric profile.
