@@ -1,0 +1,218 @@
+Here is the complete, unified system for:
+
+- Point clustering (3D + brane dimensions)  
+- Point alignment (3D rigid + brane‑space transforms)  
+
+And as requested, both:
+
+1. A Cluster Configuration Schema  
+2. An Alignment Profile Schema
+
+These schemas plug directly into the LME architecture.
+
+---
+
+⭐ 1. Cluster Configuration Schema
+This schema defines how clustering is performed using the LME distance function.
+
+`json
+{
+  "$id": "https://schemas.lme/point/cluster_config/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Point Cluster Configuration",
+  "type": "object",
+
+  "properties": {
+    "clusterconfigid": { "type": "string" },
+    "clusterconfigversion": { "type": "string" },
+
+    "algorithm": {
+      "type": "string",
+      "enum": ["kmeans", "hierarchical", "dbscan"],
+      "description": "Clustering algorithm to use."
+    },
+
+    "metricprofileref": {
+      "type": "string",
+      "description": "Reference to the metric profile controlling distance behavior."
+    },
+
+    "kmeans": {
+      "type": ["object", "null"],
+      "properties": {
+        "k": { "type": "integer", "minimum": 1 },
+        "max_iterations": { "type": "integer", "minimum": 1 }
+      }
+    },
+
+    "hierarchical": {
+      "type": ["object", "null"],
+      "properties": {
+        "linkage": {
+          "type": "string",
+          "enum": ["single", "complete", "average"]
+        },
+        "distance_threshold": { "type": ["number", "null"] }
+      }
+    },
+
+    "dbscan": {
+      "type": ["object", "null"],
+      "properties": {
+        "epsilon": { "type": "number" },
+        "min_points": { "type": "integer", "minimum": 1 }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "clusterconfigid",
+    "clusterconfigversion",
+    "algorithm",
+    "metricprofileref",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ 2. Alignment Profile Schema
+This schema defines how two point sets are aligned:
+
+- 3D rigid transform  
+- 4D shift  
+- 5D+ brane‑space linear transform  
+
+`json
+{
+  "$id": "https://schemas.lme/point/alignment_profile/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Point Alignment Profile",
+  "type": "object",
+
+  "properties": {
+    "alignmentprofileid": { "type": "string" },
+    "alignmentprofileversion": { "type": "string" },
+
+    "metricprofileref": {
+      "type": "string",
+      "description": "Reference to the metric profile used to evaluate alignment quality."
+    },
+
+    "alignment_modes": {
+      "type": "object",
+      "properties": {
+        "align_3d": { "type": "boolean" },
+        "align_4d": { "type": "boolean" },
+        "align_5plus": { "type": "boolean" }
+      },
+      "required": ["align3d", "align4d", "align_5plus"]
+    },
+
+    "rigid3dtransform": {
+      "type": ["object", "null"],
+      "description": "Rotation matrix R and translation vector t for 3D alignment.",
+      "properties": {
+        "rotation_matrix": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "number" }
+          }
+        },
+        "translation_vector": {
+          "type": "array",
+          "items": { "type": "number" }
+        }
+      }
+    },
+
+    "d4_shift": {
+      "type": ["number", "null"],
+      "description": "Shift applied to align 4D separation scalars."
+    },
+
+    "branelineartransform": {
+      "type": ["object", "null"],
+      "description": "Linear transform M and offset c for brane-space alignment.",
+      "properties": {
+        "matrix_M": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "number" }
+          }
+        },
+        "offset_c": {
+          "type": "array",
+          "items": { "type": "number" }
+        }
+      }
+    },
+
+    "alignment_error": {
+      "type": ["number", "null"],
+      "description": "Final alignment error computed using the metric profile."
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "alignmentprofileid",
+    "alignmentprofileversion",
+    "metricprofileref",
+    "alignment_modes",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ 3. How These Fit Into the LME System
+
+✔ Cluster Configuration Schema
+Tells the system how to group points using the LME distance function.
+
+✔ Alignment Profile Schema
+Tells the system how to align two point sets across:
+
+- 3D  
+- 4D  
+- 5D+ brane geometry  
+
+✔ Both schemas reference the metric profile, so all behavior is consistent.
+
+---
+
+⭐ 4. What You Can Do Next
+
+You now have:
+
+- Point comparison schema  
+- Brane comparison schema  
+- Metric profile schema  
+- Cluster configuration schema  
+- Alignment profile schema
+
+This is the complete point‑comparison, clustering, and alignment engine. 
