@@ -1,0 +1,260 @@
+Concise takeaway:  
+You now get a three‑schema brane comparison system:
+
+1. Brane Schema (updated) — a standalone, self‑contained definition of a brane (dimensions 4+).  
+2. 3D Coordinates Schema (updated) — now explicitly references the brane the 3D point belongs to.  
+3. Brane‑to‑Brane Comparison Schema (new) — a fixed, time‑invariant comparison object that stores:  
+   - the fixed 4D separation metric,  
+   - the relative distances + angles in dimensions 5+,  
+   - the rates of change for those higher‑dimensional relationships,  
+   - and references to the two branes being compared.
+
+All three schemas remain atomic, DAG‑safe, dimension‑explicit, and composable.
+
+---
+
+🧱 1. Updated Brane Schema (brane.schema.json)
+This is the canonical definition of a brane:  
+- 4th‑dimension separation scalar  
+- 5D+ brane geometry  
+- Optional metric, hyperspherical structure, and manifold reference
+
+`json
+{
+  "$id": "https://schemas.lme/brane/2.1.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Brane Schema",
+  "type": "object",
+
+  "properties": {
+    "brane_id": { "type": "string" },
+    "brane_version": { "type": "string" },
+
+    "d4_separation": {
+      "type": "number",
+      "description": "Fixed relational scalar separating this brane from others in the 4th dimension."
+    },
+
+    "brane_coordinates": {
+      "type": "array",
+      "description": "Coordinates for dimensions 5 and above.",
+      "items": { "type": "number" }
+    },
+
+    "brane_labels": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+
+    "brane_metric": {
+      "type": ["object", "null"],
+      "properties": {
+        "type": { "type": "string", "enum": ["euclidean", "riemannian", "custom"] },
+        "matrix": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "array",
+            "items": { "type": "number" }
+          }
+        }
+      }
+    },
+
+    "hyperspherical": {
+      "type": ["object", "null"],
+      "properties": {
+        "radius": { "type": "number" },
+        "angles": {
+          "type": "array",
+          "items": { "type": "number" }
+        }
+      }
+    },
+
+    "manifold_reference": {
+      "type": ["string", "null"],
+      "description": "Reference to a manifold definition or embedding space."
+    }
+  },
+
+  "required": [
+    "brane_id",
+    "brane_version",
+    "d4_separation",
+    "brane_coordinates"
+  ]
+}
+`
+
+---
+
+🌍 2. Updated 3D Coordinates Schema (coordinates.3d.schema.json)
+This schema now references the brane the 3D coordinates belong to.
+
+`json
+{
+  "$id": "https://schemas.lme/coordinates/3d/2.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME 3D Spatial Coordinates (Brane‑Linked)",
+  "type": "object",
+
+  "properties": {
+    "coordinate_system": {
+      "type": "string",
+      "enum": ["WGS84", "Cartesian3D", "ECEF"]
+    },
+
+    "point_3d": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      },
+      "required": ["x", "y", "z"]
+    },
+
+    "brane_ref": {
+      "type": "string",
+      "description": "Reference to the brane this 3D coordinate belongs to."
+    },
+
+    "precision_m": { "type": ["number", "null"] },
+    "elevation_m": { "type": ["number", "null"] },
+
+    "spatial_context": {
+      "type": "object",
+      "properties": {
+        "geohash": { "type": ["string", "null"] },
+        "plus_code": { "type": ["string", "null"] }
+      }
+    }
+  },
+
+  "required": ["coordinatesystem", "point3d", "brane_ref"]
+}
+`
+
+This creates a clean, explicit mapping:  
+3D coordinates → brane → hyperspatial geometry.
+
+---
+
+🧬 3. Brane‑to‑Brane Comparison Schema (brane_comparison.schema.json)
+This is the new schema you requested.  
+It stores:
+
+- Fixed 4D separation metric  
+- Relative distances in dimensions 5+  
+- Relative angles in dimensions 5+  
+- Rates of change for those distances and angles  
+- References to the two branes being compared
+
+`json
+{
+  "$id": "https://schemas.lme/brane/comparison/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Brane-to-Brane Comparison Schema",
+  "type": "object",
+
+  "properties": {
+    "comparison_id": { "type": "string" },
+    "comparison_version": { "type": "string" },
+
+    "branearef": {
+      "type": "string",
+      "description": "Reference to the first brane."
+    },
+
+    "branebref": {
+      "type": "string",
+      "description": "Reference to the second brane."
+    },
+
+    "d4relativedistance": {
+      "type": "number",
+      "description": "Fixed, time-invariant relative separation in the 4th dimension."
+    },
+
+    "dim5plusrelativedistances": {
+      "type": "array",
+      "description": "Relative distances between branes in dimensions 5 and above.",
+      "items": { "type": "number" }
+    },
+
+    "dim5plusrelativeangles": {
+      "type": "array",
+      "description": "Relative angles between branes in dimensions 5 and above.",
+      "items": { "type": "number" }
+    },
+
+    "dim5plusdistancechange_rates": {
+      "type": "array",
+      "description": "Rates of change for distances in dimensions 5+.",
+      "items": { "type": "number" }
+    },
+
+    "dim5plusanglechange_rates": {
+      "type": "array",
+      "description": "Rates of change for angles in dimensions 5+.",
+      "items": { "type": "number" }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "comparison_id",
+    "comparison_version",
+    "branearef",
+    "branebref",
+    "d4relativedistance",
+    "dim5plusrelativedistances",
+    "dim5plusrelativeangles",
+    "meta"
+  ]
+}
+`
+
+This schema is the canonical brane comparison object.
+
+---
+
+🧩 4. How These Schemas Work Together
+
+A. Brane Schema
+Defines the hyperspatial structure of a brane.
+
+B. 3D Coordinates Schema
+Links a 3D point to a brane.
+
+C. Brane Comparison Schema
+Defines the fixed and dynamic relationships between two branes.
+
+DAG Structure
+
+`
+Brane A ───────┐
+                ├── Brane Comparison Object
+Brane B ───────┘
+
+3D Coordinates → Brane → Hyperspatial Geometry
+`
+
+Everything is:
+
+- Atomic  
+- Composable  
+- Dimension‑explicit  
+- DAG‑safe  
+- Extensible to 10D or more
+
+---
