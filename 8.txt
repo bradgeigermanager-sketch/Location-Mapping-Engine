@@ -1,0 +1,124 @@
+Brane metric profile schema
+
+Here’s a declarative metric profile type that encodes all the knobs you just defined—weights, per‑dimension factors, and metric family—so distance behavior is fully schema‑driven.
+
+`json
+{
+  "$id": "https://schemas.lme/brane/metric_profile/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Brane Metric Profile",
+  "type": "object",
+
+  "properties": {
+    "metricprofileid": { "type": "string" },
+    "metricprofileversion": { "type": "string" },
+
+    "metric_family": {
+      "type": "string",
+      "enum": ["euclidean", "riemannian", "custom"],
+      "description": "Determines how distances in dimensions 5+ are aggregated."
+    },
+
+    "weights": {
+      "type": "object",
+      "description": "Global weights for composite distance.",
+      "properties": {
+        "gamma_4": {
+          "type": "number",
+          "description": "Weight for 4D separation component D4."
+        },
+        "gamma_static": {
+          "type": "number",
+          "description": "Weight for static distance in dimensions 5+."
+        },
+        "gamma_angle": {
+          "type": "number",
+          "description": "Weight for static angle contribution in dimensions 5+."
+        },
+        "gamma_dynamic": {
+          "type": "number",
+          "description": "Weight for dynamic divergence (rates of change)."
+        },
+        "betaanglerate": {
+          "type": "number",
+          "description": "Weight for angular rate vs distance rate in dynamic term."
+        }
+      },
+      "required": [
+        "gamma_4",
+        "gamma_static",
+        "gamma_angle",
+        "gamma_dynamic",
+        "betaanglerate"
+      ]
+    },
+
+    "perdimensionfactors": {
+      "type": "array",
+      "description": "Optional per-dimension angle weights and scaling for dimensions 5+.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "dimension_index": {
+            "type": "integer",
+            "minimum": 5
+          },
+          "alpha_angle": {
+            "type": "number",
+            "description": "Weight for angle contribution in this dimension."
+          },
+          "scale_distance": {
+            "type": "number",
+            "description": "Scaling factor for distance in this dimension."
+          },
+          "scale_angle": {
+            "type": "number",
+            "description": "Scaling factor for angle in this dimension."
+          }
+        },
+        "required": ["dimension_index"]
+      }
+    },
+
+    "riemannian_metric": {
+      "type": ["object", "null"],
+      "description": "Optional metric tensor for dimensions 5+ when metric_family = 'riemannian'.",
+      "properties": {
+        "matrix": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "number" }
+          },
+          "description": "Metric tensor g_ij over dimensions 5..n."
+        }
+      }
+    },
+
+    "custommetricreference": {
+      "type": ["string", "null"],
+      "description": "Reference to custom metric implementation if metric_family = 'custom'."
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "metricprofileid",
+    "metricprofileversion",
+    "metric_family",
+    "weights",
+    "meta"
+  ]
+}
+`
+
+If you’d like, next step we can wire this metricprofile into the brane‑comparison schema as a metricprofile_ref, so every comparison explicitly declares which metric semantics it used.
