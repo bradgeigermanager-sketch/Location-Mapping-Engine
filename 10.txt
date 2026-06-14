@@ -1,0 +1,279 @@
+Below is the complete, unified, deterministic comparison system for two points across:
+
+- Dimensions 1–3 (classical spatial comparison)  
+- Dimension 4 (fixed brane‑separation scalar)  
+- Dimensions 5+ (brane geometry: distances, angles, and temporal derivatives)
+
+This gives you everything needed to compare any two points in the LME system, using the schemas we’ve built.
+
+No filler. No ambiguity. Just the full comparison engine.
+
+---
+
+⭐ 1. What a “Point” Means in LME
+
+A point is defined by:
+
+- 3D coordinates (with a brane reference)  
+- Brane geometry (dimensions 4+)  
+- Temporal measurement history (for rates of change)
+
+So comparing two points means comparing:
+
+1. Their 3D positions  
+2. Their branes  
+3. Their brane‑to‑brane comparison object  
+4. Their metric profile (how to compute distances)
+
+---
+
+🧱 2. Schema: Point Comparison Schema (Final Unified Form)
+This schema references:
+
+- 3D coordinate schema  
+- Brane schema  
+- Brane comparison schema  
+- Metric profile schema  
+
+It produces a complete comparison object for two points.
+
+`json
+{
+  "$id": "https://schemas.lme/point/comparison/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Point-to-Point Comparison Schema",
+  "type": "object",
+
+  "properties": {
+    "comparison_id": { "type": "string" },
+    "comparison_version": { "type": "string" },
+
+    "pointacoordinates_ref": { "type": "string" },
+    "pointbcoordinates_ref": { "type": "string" },
+
+    "pointabrane_ref": { "type": "string" },
+    "pointbbrane_ref": { "type": "string" },
+
+    "branecomparisonref": {
+      "type": "string",
+      "description": "Reference to brane-to-brane comparison object."
+    },
+
+    "metricprofileref": {
+      "type": "string",
+      "description": "Reference to the metric profile used for this comparison."
+    },
+
+    "comparison_results": {
+      "type": "object",
+      "properties": {
+        "dimensions1to_3": {
+          "type": "object",
+          "properties": {
+            "euclidean_distance": { "type": "number" },
+            "manhattan_distance": { "type": "number" },
+            "chebyshev_distance": { "type": "number" },
+            "direction_vector": {
+              "type": "array",
+              "items": { "type": "number" }
+            }
+          },
+          "required": [
+            "euclidean_distance",
+            "manhattan_distance",
+            "chebyshev_distance",
+            "direction_vector"
+          ]
+        },
+
+        "dimension_4": {
+          "type": "object",
+          "properties": {
+            "relative_separation": {
+              "type": "number",
+              "description": "Fixed, time-invariant separation in the 4th dimension."
+            }
+          },
+          "required": ["relative_separation"]
+        },
+
+        "dimensions5plus": {
+          "type": "object",
+          "properties": {
+            "static_distances": {
+              "type": "array",
+              "items": { "type": "number" }
+            },
+            "static_angles": {
+              "type": "array",
+              "items": { "type": "number" }
+            },
+            "distancechangerates": {
+              "type": "array",
+              "items": { "type": "number" }
+            },
+            "anglechangerates": {
+              "type": "array",
+              "items": { "type": "number" }
+            },
+            "compositestaticdistance": { "type": "number" },
+            "compositedynamicdivergence": { "type": "number" }
+          },
+          "required": [
+            "static_distances",
+            "static_angles",
+            "distancechangerates",
+            "anglechangerates",
+            "compositestaticdistance",
+            "compositedynamicdivergence"
+          ]
+        },
+
+        "total_distance": {
+          "type": "number",
+          "description": "Final composite distance using the metric profile."
+        }
+      },
+      "required": [
+        "dimensions1to_3",
+        "dimension_4",
+        "dimensions5plus",
+        "total_distance"
+      ]
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "comparison_id",
+    "comparison_version",
+    "pointacoordinates_ref",
+    "pointbcoordinates_ref",
+    "pointabrane_ref",
+    "pointbbrane_ref",
+    "branecomparisonref",
+    "metricprofileref",
+    "comparison_results",
+    "meta"
+  ]
+}
+`
+
+---
+
+🧭 3. Algorithms Used (Complete Set)
+
+A. Dimensions 1–3 (3D Space)
+
+Euclidean
+\[
+D{3D} = \sqrt{(xA - xB)^2 + (yA - yB)^2 + (zA - z_B)^2}
+\]
+
+Manhattan
+\[
+M{3D} = |xA - xB| + |yA - yB| + |zA - z_B|
+\]
+
+Chebyshev
+\[
+C{3D} = \max(|xA - xB|, |yA - yB|, |zA - z_B|)
+\]
+
+Direction vector
+\[
+\vec{v} = (xB - xA,\; yB - yA,\; zB - zA)
+\]
+
+---
+
+B. Dimension 4 (Fixed Brane Separation)
+
+\[
+D4 = |d^{(A)}4 - d^{(B)}_4|
+\]
+
+This is time‑invariant.
+
+---
+
+C. Dimensions 5+ (Brane Geometry)
+
+Per‑dimension static distance
+\[
+\Delta dk = |b^{(A)}k - b^{(B)}_k|
+\]
+
+Per‑dimension static angle
+\[
+\Delta \theta_k = \arccos\left(
+\frac{b^{(A)}k \cdot b^{(B)}k}{|b^{(A)}k|\,|b^{(B)}k|}
+\right)
+\]
+
+Per‑dimension distance rate
+\[
+\dot{d}k = \frac{dk(t2) - dk(t1)}{t2 - t_1}
+\]
+
+Per‑dimension angle rate
+\[
+\dot{\theta}k = \frac{\thetak(t2) - \thetak(t1)}{t2 - t_1}
+\]
+
+---
+
+D. Composite Static Brane Distance
+
+\[
+D{\text{static}} = \sqrt{\sum{k=5}^{n} (\Delta d_k)^2}
+\]
+
+---
+
+E. Composite Dynamic Divergence
+
+\[
+R_{\text{dynamic}} = \sqrt{
+\sum{k=5}^{n} \left( \dot{d}k^2 + \beta \dot{\theta}_k^2 \right)
+}
+\]
+
+---
+
+F. Total Distance (Metric Profile Driven)
+
+\[
+D_{\text{total}} =
+\sqrt{
+\gamma4 D4^2 +
+\gammas D{\text{static}}^2 +
+\gammaa \sum{k=5}^{n} (\Delta \theta_k)^2 +
+\gammad R{\text{dynamic}}^2
+}
+\]
+
+Where all \( \gamma \) and \( \beta \) come from the metric profile.
+
+---
+
+🧩 4. What You Now Have
+
+You now have:
+
+- A complete schema for comparing two points  
+- All algorithms for 1–3D, 4D, and 5D+  
+- A metric profile system that controls how distances are computed  
+- A brane comparison system that stores all per‑dimension values  
+- A unified point‑comparison schema that ties it all together  
+
+This is the full LME point‑comparison engine.
