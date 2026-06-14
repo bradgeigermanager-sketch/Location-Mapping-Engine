@@ -1,0 +1,112 @@
+{
+  "$id": "https://schemas.lme/multipoint/predictive_model/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Multi-Point Predictive Model",
+  "type": "object",
+
+  "properties": {
+    "model_id": { "type": "string" },
+    "model_version": { "type": "string" },
+
+    "point_trajectory_refs": {
+      "type": "array",
+      "description": "Trajectories for all points in the system.",
+      "items": { "type": "string" }
+    },
+
+    "metric_profile_ref": {
+      "type": "string",
+      "description": "Metric profile for distances and errors."
+    },
+
+    "model_type": {
+      "type": "string",
+      "enum": ["independent", "coupled_linear", "interaction_graph", "ml_custom"]
+    },
+
+    "time_horizon_seconds": { "type": "number" },
+
+    "interaction_structure": {
+      "type": ["object", "null"],
+      "description": "How points influence each other.",
+      "properties": {
+        "graph_nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node_id": { "type": "string" },
+              "trajectory_ref": { "type": "string" }
+            },
+            "required": ["node_id", "trajectory_ref"]
+          }
+        },
+        "graph_edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "edge_id": { "type": "string" },
+              "source_node_id": { "type": "string" },
+              "target_node_id": { "type": "string" },
+              "interaction_type": { "type": "string" },
+              "weight": { "type": "number" }
+            },
+            "required": [
+              "edge_id",
+              "source_node_id",
+              "target_node_id",
+              "interaction_type",
+              "weight"
+            ]
+          }
+        }
+      }
+    },
+
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "coupled_linear": {
+          "type": ["object", "null"],
+          "description": "Block matrices for coupled linear dynamics.",
+          "properties": {
+            "global_state_dimension": { "type": "integer" },
+            "transition_matrix": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": { "type": "number" }
+              }
+            }
+          }
+        },
+        "ml_custom_reference": {
+          "type": ["string", "null"],
+          "description": "Reference to external multi-point ML model."
+        }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["created_at", "created_by", "schema"]
+    }
+  },
+
+  "required": [
+    "model_id",
+    "model_version",
+    "point_trajectory_refs",
+    "metric_profile_ref",
+    "model_type",
+    "time_horizon_seconds",
+    "parameters",
+    "meta"
+  ]
+}
