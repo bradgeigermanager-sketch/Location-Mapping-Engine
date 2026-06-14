@@ -1,0 +1,245 @@
+1. Point trajectory schema
+
+A trajectory is a time‑ordered series of states for a single point:
+
+`json
+{
+  "$id": "https://schemas.lme/point/trajectory/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Point Trajectory",
+  "type": "object",
+
+  "properties": {
+    "trajectory_id": { "type": "string" },
+    "trajectory_version": { "type": "string" },
+
+    "pointentityref": {
+      "type": "string",
+      "description": "Reference to the entity or point identity."
+    },
+
+    "metricprofileref": {
+      "type": "string",
+      "description": "Metric profile used for derived measures along the trajectory."
+    },
+
+    "samples": {
+      "type": "array",
+      "description": "Time-ordered samples of the point's state.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": { "type": "string", "format": "date-time" },
+
+          "coordinates_ref": {
+            "type": "string",
+            "description": "Reference to 3D coordinates (brane-linked)."
+          },
+
+          "brane_ref": {
+            "type": "string",
+            "description": "Reference to the brane at this time."
+          },
+
+          "brane_state": {
+            "type": "object",
+            "description": "Snapshot of brane coordinates at this time.",
+            "properties": {
+              "d4_separation": { "type": "number" },
+              "brane_coordinates": {
+                "type": "array",
+                "items": { "type": "number" }
+              }
+            },
+            "required": ["d4separation", "branecoordinates"]
+          }
+        },
+        "required": ["timestamp", "coordinatesref", "braneref", "brane_state"]
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "trajectory_id",
+    "trajectory_version",
+    "pointentityref",
+    "metricprofileref",
+    "samples",
+    "meta"
+  ]
+}
+`
+
+---
+
+2. Point evolution model schema
+
+This describes derived kinematics along a trajectory: velocities, accelerations, and brane‑space evolution.
+
+`json
+{
+  "$id": "https://schemas.lme/point/evolution/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Point Evolution Model",
+  "type": "object",
+
+  "properties": {
+    "evolution_id": { "type": "string" },
+    "evolution_version": { "type": "string" },
+
+    "trajectory_ref": {
+      "type": "string",
+      "description": "Reference to the trajectory this evolution is derived from."
+    },
+
+    "metricprofileref": {
+      "type": "string",
+      "description": "Metric profile used for distance and rate calculations."
+    },
+
+    "segments": {
+      "type": "array",
+      "description": "Derived evolution between consecutive trajectory samples.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "start_timestamp": { "type": "string", "format": "date-time" },
+          "end_timestamp": { "type": "string", "format": "date-time" },
+
+          "deltatseconds": { "type": "number" },
+
+          "distance_3d": { "type": "number" },
+          "velocity_3d": { "type": "number" },
+          "acceleration_3d": { "type": ["number", "null"] },
+
+          "d4_change": { "type": "number" },
+          "d4_rate": { "type": "number" },
+
+          "branedim5plusdistance_change": {
+            "type": "array",
+            "items": { "type": "number" }
+          },
+          "branedim5plusangle_change": {
+            "type": "array",
+            "items": { "type": "number" }
+          },
+
+          "branedim5plusdistance_rates": {
+            "type": "array",
+            "items": { "type": "number" }
+          },
+          "branedim5plusangle_rates": {
+            "type": "array",
+            "items": { "type": "number" }
+          }
+        },
+        "required": [
+          "start_timestamp",
+          "end_timestamp",
+          "deltatseconds",
+          "distance_3d",
+          "velocity_3d",
+          "d4_change",
+          "d4_rate",
+          "branedim5plusdistance_change",
+          "branedim5plusangle_change",
+          "branedim5plusdistance_rates",
+          "branedim5plusangle_rates"
+        ]
+      }
+    },
+
+    "summary": {
+      "type": "object",
+      "description": "Aggregate evolution characteristics.",
+      "properties": {
+        "totaldurationseconds": { "type": "number" },
+        "totalpathlength_3d": { "type": "number" },
+        "averagevelocity3d": { "type": "number" },
+        "maxvelocity3d": { "type": "number" },
+
+        "aggregated4change": { "type": "number" },
+
+        "aggregatebranedistance_change": {
+          "type": "array",
+          "items": { "type": "number" }
+        },
+        "aggregatebraneangle_change": {
+          "type": "array",
+          "items": { "type": "number" }
+        }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "evolution_id",
+    "evolution_version",
+    "trajectory_ref",
+    "metricprofileref",
+    "segments",
+    "meta"
+  ]
+}
+`
+
+---
+
+3. Core evolution algorithms
+
+Given consecutive samples \((ti, Pi)\), \((t{i+1}, P{i+1})\):
+
+- Time delta:  
+  \(\Delta t = t{i+1} - ti\)
+
+- 3D distance:  
+  \(D{3D}(Pi, P_{i+1})\) as before.
+
+- 3D velocity:  
+  \(v{3D} = D{3D} / \Delta t\)
+
+- 3D acceleration (optional, if previous segment exists):  
+  \(a{3D} = (v{3D}^{(i+1)} - v_{3D}^{(i)}) / \Delta t\)
+
+- 4D change and rate:  
+  \(\Delta d4 = d4(t{i+1}) - d4(t_i)\)  
+  \(r4 = \Delta d4 / \Delta t\)
+
+- Brane dim 5+ distance/angle changes and rates:  
+  Per dimension \(k \ge 5\):  
+  \(\Delta dk = dk(t{i+1}) - dk(t_i)\)  
+  \(\Delta \thetak = \thetak(t{i+1}) - \thetak(t_i)\)  
+  \(r{d,k} = \Delta dk / \Delta t\)  
+  \(r{\theta,k} = \Delta \thetak / \Delta t\)
+
+These populate the segments array.
+
+---
+
+4. Putting it together
+
+You now have:
+
+- Trajectory schema — raw time series of point states.  
+- Evolution model schema — derived kinematics in 3D and brane space.  
+- Metric profile — consistent distance semantics across everything.
