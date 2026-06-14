@@ -1,0 +1,339 @@
+How do we predict not just one point, but a whole interacting set of points—each with 3D + brane trajectories?  
+
+Here’s a clean, modular multi‑point predictive system:
+
+---
+
+1. Multi‑point predictive model schema
+
+`json
+{
+  "$id": "https://schemas.lme/multipoint/predictive_model/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Multi-Point Predictive Model",
+  "type": "object",
+
+  "properties": {
+    "model_id": { "type": "string" },
+    "model_version": { "type": "string" },
+
+    "pointtrajectoryrefs": {
+      "type": "array",
+      "description": "Trajectories for all points in the system.",
+      "items": { "type": "string" }
+    },
+
+    "metricprofileref": {
+      "type": "string",
+      "description": "Metric profile for distances and errors."
+    },
+
+    "model_type": {
+      "type": "string",
+      "enum": ["independent", "coupledlinear", "interactiongraph", "ml_custom"]
+    },
+
+    "timehorizonseconds": { "type": "number" },
+
+    "interaction_structure": {
+      "type": ["object", "null"],
+      "description": "How points influence each other.",
+      "properties": {
+        "graph_nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node_id": { "type": "string" },
+              "trajectory_ref": { "type": "string" }
+            },
+            "required": ["nodeid", "trajectoryref"]
+          }
+        },
+        "graph_edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "edge_id": { "type": "string" },
+              "sourcenodeid": { "type": "string" },
+              "targetnodeid": { "type": "string" },
+              "interaction_type": { "type": "string" },
+              "weight": { "type": "number" }
+            },
+            "required": [
+              "edge_id",
+              "sourcenodeid",
+              "targetnodeid",
+              "interaction_type",
+              "weight"
+            ]
+          }
+        }
+      }
+    },
+
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "coupled_linear": {
+          "type": ["object", "null"],
+          "description": "Block matrices for coupled linear dynamics.",
+          "properties": {
+            "globalstatedimension": { "type": "integer" },
+            "transition_matrix": {
+              "type": "array",
+              "items": {
+                "type": "array",
+                "items": { "type": "number" }
+              }
+            }
+          }
+        },
+        "mlcustomreference": {
+          "type": ["string", "null"],
+          "description": "Reference to external multi-point ML model."
+        }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "model_id",
+    "model_version",
+    "pointtrajectoryrefs",
+    "metricprofileref",
+    "model_type",
+    "timehorizonseconds",
+    "parameters",
+    "meta"
+  ]
+}
+`
+
+---
+
+2. Multi‑point prediction schema
+
+`json
+{
+  "$id": "https://schemas.lme/multipoint/prediction/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Multi-Point Prediction",
+  "type": "object",
+
+  "properties": {
+    "prediction_id": { "type": "string" },
+    "prediction_version": { "type": "string" },
+
+    "multipointmodelref": { "type": "string" },
+
+    "predictionstarttimestamp": { "type": "string", "format": "date-time" },
+    "predictionendtimestamp": { "type": "string", "format": "date-time" },
+
+    "point_predictions": {
+      "type": "array",
+      "description": "Per-point predicted trajectories.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "point_id": { "type": "string" },
+          "trajectorypredictionref": {
+            "type": "string",
+            "description": "Reference to a single-point prediction schema."
+          }
+        },
+        "required": ["pointid", "trajectoryprediction_ref"]
+      }
+    },
+
+    "interaction_predictions": {
+      "type": "array",
+      "description": "Predicted pairwise or group relationships.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "relation_id": { "type": "string" },
+          "point_ids": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "predictedbranecomparison_ref": {
+            "type": ["string", "null"],
+            "description": "Optional predicted brane comparison for the relation."
+          }
+        },
+        "required": ["relationid", "pointids"]
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "prediction_id",
+    "prediction_version",
+    "multipointmodelref",
+    "predictionstarttimestamp",
+    "predictionendtimestamp",
+    "point_predictions",
+    "meta"
+  ]
+}
+`
+
+---
+
+3. Multi‑point prediction evaluation schema
+
+`json
+{
+  "$id": "https://schemas.lme/multipoint/prediction_evaluation/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Multi-Point Prediction Evaluation",
+  "type": "object",
+
+  "properties": {
+    "evaluation_id": { "type": "string" },
+    "evaluation_version": { "type": "string" },
+
+    "multipointpredictionref": { "type": "string" },
+
+    "actualtrajectoryrefs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+
+    "metricprofileref": { "type": "string" },
+
+    "perpointerrors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "point_id": { "type": "string" },
+          "trajectoryevaluationref": {
+            "type": "string",
+            "description": "Reference to single-point prediction evaluation."
+          }
+        },
+        "required": ["pointid", "trajectoryevaluation_ref"]
+      }
+    },
+
+    "interaction_errors": {
+      "type": "array",
+      "description": "Errors on predicted relationships (e.g., distances, brane comparisons).",
+      "items": {
+        "type": "object",
+        "properties": {
+          "relation_id": { "type": "string" },
+          "error_score": { "type": "number" }
+        },
+        "required": ["relationid", "errorscore"]
+      }
+    },
+
+    "aggregateerrorscore": { "type": "number" },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "evaluation_id",
+    "evaluation_version",
+    "multipointpredictionref",
+    "actualtrajectoryrefs",
+    "metricprofileref",
+    "perpointerrors",
+    "aggregateerrorscore",
+    "meta"
+  ]
+}
+`
+
+---
+
+4. Core multi‑point predictive algorithms
+
+State representation
+
+- Stack all point states into one global state vector  
+  \(\mathbf{S}(t) = [s1(t), s2(t), \dots, s_N(t)]^\top\)  
+  where each \(s_i(t)\) includes 3D + 4+D brane components.
+
+Independent model
+
+- Predict each point with its own single‑point model.
+
+Coupled linear model
+
+\[
+\mathbf{S}(t+\Delta t) = A \mathbf{S}(t)
+\]
+
+- \(A\) is a block matrix encoding interactions between points.
+
+Interaction graph model
+
+- For each point \(i\):
+
+\[
+si(t+\Delta t) = f\Big(si(t), \{sj(t)\}{j \in \mathcal{N}(i)}\Big)
+\]
+
+- \(\mathcal{N}(i)\) from interactionstructure.graphedges.
+
+---
+
+5. Multi‑point error and scoring
+
+Per‑point error: use your existing trajectory prediction evaluation.
+
+Interaction error example (for a pair \(i,j\)):
+
+- Compare predicted vs actual brane comparison or distance:
+
+\[
+E{ij} = |D{\text{pred}}(i,j) - D_{\text{actual}}(i,j)|
+\]
+
+Aggregate error:
+
+\[
+E_{\text{multi}} =
+\alpha \cdot \frac{1}{N}\sumi Ei +
+(1-\alpha) \cdot \frac{1}{M}\sum{(i,j)} E{ij}
+\]
+
+- \(E_i\): per‑point total error  
+- \(E_{ij}\): interaction error  
+- \(\alpha\): weight between individual and relational accuracy  
+
+Weights inside \(E_i\) come from the metric profile.
