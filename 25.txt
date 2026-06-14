@@ -1,0 +1,355 @@
+1. JSON: point comparison engine payload shape
+
+`json
+{
+  "metric_profile": {
+    "metricprofileid": "mp-1",
+    "weights": {
+      "gamma_3d": 1.0,
+      "gamma_4": 1.0,
+      "gamma_static": 1.0,
+      "gamma_angle": 1.0
+    }
+  },
+  "point_a": {
+    "point_id": "P1",
+    "coords_3d": { "x": 0.0, "y": 0.0, "z": 0.0 },
+    "d4": 0.5,
+    "brane_dims": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+  },
+  "point_b": {
+    "point_id": "P2",
+    "coords_3d": { "x": 1.0, "y": 2.0, "z": 3.0 },
+    "d4": 0.8,
+    "brane_dims": [0.2, 0.1, 0.4, 0.3, 0.7, 0.5]
+  }
+}
+`
+
+2. JSON: comparison result
+
+`json
+{
+  "pointaid": "P1",
+  "pointbid": "P2",
+  "d3_euclidean": 3.7416573868,
+  "d3_manhattan": 6.0,
+  "d3_chebyshev": 3.0,
+  "d3directionvector": [1.0, 2.0, 3.0],
+  "d4_relative": 0.3,
+  "branestaticdistances": [0.1, 0.1, 0.1, 0.1, 0.2, 0.1],
+  "branestaticangles": [0.078, -0.049, 0.076, -0.048, 0.071, -0.038],
+  "compositestaticdistance": 0.316227766,
+  "compositeangledistance": 0.158,
+  "total_distance": 3.78
+}
+`
+
+---
+
+3. CSV: flat comparison export
+
+`csv
+pointaid,pointbid,d3euclidean,d3manhattan,d3chebyshev,d4relative,branestaticd1,branestaticd2,branestaticd3,branestaticd4,branestaticd5,branestaticd6,compositestaticdistance,total_distance
+P1,P2,3.7416573868,6.0,3.0,0.3,0.1,0.1,0.1,0.1,0.2,0.1,0.316227766,3.78
+`
+
+(You can add angle columns similarly if needed.)
+
+---
+
+4. HTML: minimal comparison UI
+
+`html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>10D Point Comparison Engine</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    .row { margin-bottom: 0.5rem; }
+    label { display: inline-block; width: 140px; }
+    input { width: 80px; }
+    pre { background: #f5f5f5; padding: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>10D Point Comparison Engine</h1>
+
+  <div id="app"></div>
+
+  <script>
+    function comparePoints10D(pointA, pointB, metricProfile) {
+      const dx = pointB.coords3d.x - pointA.coords3d.x;
+      const dy = pointB.coords3d.y - pointA.coords3d.y;
+      const dz = pointB.coords3d.z - pointA.coords3d.z;
+
+      const d3_direction = [dx, dy, dz];
+      const d3_euclidean = Math.sqrt(dxdx + dydy + dz*dz);
+      const d3_manhattan = Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
+      const d3_chebyshev = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz));
+
+      const d4_relative = Math.abs(pointB.d4 - pointA.d4);
+
+      const branestaticdistances = [];
+      const branestaticangles = [];
+      for (let i = 0; i < pointA.brane_dims.length; i++) {
+        const a = pointA.brane_dims[i];
+        const b = pointB.brane_dims[i];
+        const dd = Math.abs(b - a);
+        const da = Math.atan(b) - Math.atan(a);
+        branestaticdistances.push(dd);
+        branestaticangles.push(da);
+      }
+
+      const composite_static = Math.sqrt(
+        branestaticdistances.reduce((s, dd) => s + dd*dd, 0)
+      );
+      const composite_angle = Math.sqrt(
+        branestaticangles.reduce((s, da) => s + da*da, 0)
+      );
+
+      const w = metricProfile.weights;
+      const total_distance = Math.sqrt(
+        w.gamma3d  d3euclideand3_euclidean +
+        w.gamma4  d4relatived4_relative +
+        w.gammastatic  compositestaticcomposite_static +
+        w.gammaangle  compositeanglecomposite_angle
+      );
+
+      return {
+        pointaid: pointA.point_id,
+        pointbid: pointB.point_id,
+        d3_euclidean,
+        d3_manhattan,
+        d3_chebyshev,
+        d3directionvector: d3_direction,
+        d4_relative,
+        branestaticdistances,
+        branestaticangles,
+        compositestaticdistance: composite_static,
+        compositeangledistance: composite_angle,
+        total_distance
+      };
+    }
+
+    const metricProfile = {
+      metricprofileid: "mp-1",
+      weights: { gamma3d: 1, gamma4: 1, gammastatic: 1, gammaangle: 1 }
+    };
+
+    const pointA = {
+      point_id: "P1",
+      coords_3d: { x: 0, y: 0, z: 0 },
+      d4: 0.5,
+      brane_dims: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+    };
+
+    const pointB = {
+      point_id: "P2",
+      coords_3d: { x: 1, y: 2, z: 3 },
+      d4: 0.8,
+      brane_dims: [0.2, 0.1, 0.4, 0.3, 0.7, 0.5]
+    };
+
+    const result = comparePoints10D(pointA, pointB, metricProfile);
+    document.getElementById("app").innerHTML =
+      "<h2>Result</h2><pre>" + JSON.stringify(result, null, 2) + "</pre>";
+  </script>
+</body>
+</html>
+`
+
+---
+
+5. JSX: React component for comparison
+
+`jsx
+import React, { useState } from "react";
+
+function comparePoints10D(pointA, pointB, metricProfile) {
+  const dx = pointB.coords3d.x - pointA.coords3d.x;
+  const dy = pointB.coords3d.y - pointA.coords3d.y;
+  const dz = pointB.coords3d.z - pointA.coords3d.z;
+
+  const d3_direction = [dx, dy, dz];
+  const d3_euclidean = Math.sqrt(dxdx + dydy + dz*dz);
+  const d3_manhattan = Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
+  const d3_chebyshev = Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz));
+
+  const d4_relative = Math.abs(pointB.d4 - pointA.d4);
+
+  const branestaticdistances = [];
+  const branestaticangles = [];
+  for (let i = 0; i < pointA.brane_dims.length; i++) {
+    const a = pointA.brane_dims[i];
+    const b = pointB.brane_dims[i];
+    const dd = Math.abs(b - a);
+    const da = Math.atan(b) - Math.atan(a);
+    branestaticdistances.push(dd);
+    branestaticangles.push(da);
+  }
+
+  const composite_static = Math.sqrt(
+    branestaticdistances.reduce((s, dd) => s + dd*dd, 0)
+  );
+  const composite_angle = Math.sqrt(
+    branestaticangles.reduce((s, da) => s + da*da, 0)
+  );
+
+  const w = metricProfile.weights;
+  const total_distance = Math.sqrt(
+    w.gamma3d  d3euclideand3_euclidean +
+    w.gamma4  d4relatived4_relative +
+    w.gammastatic  compositestaticcomposite_static +
+    w.gammaangle  compositeanglecomposite_angle
+  );
+
+  return {
+    pointaid: pointA.point_id,
+    pointbid: pointB.point_id,
+    d3_euclidean,
+    d3_manhattan,
+    d3_chebyshev,
+    d3directionvector: d3_direction,
+    d4_relative,
+    branestaticdistances,
+    branestaticangles,
+    compositestaticdistance: composite_static,
+    compositeangledistance: composite_angle,
+    total_distance
+  };
+}
+
+export function PointComparison10D() {
+  const [result, setResult] = useState(null);
+
+  const metricProfile = {
+    metricprofileid: "mp-1",
+    weights: { gamma3d: 1, gamma4: 1, gammastatic: 1, gammaangle: 1 }
+  };
+
+  const pointA = {
+    point_id: "P1",
+    coords_3d: { x: 0, y: 0, z: 0 },
+    d4: 0.5,
+    brane_dims: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+  };
+
+  const pointB = {
+    point_id: "P2",
+    coords_3d: { x: 1, y: 2, z: 3 },
+    d4: 0.8,
+    brane_dims: [0.2, 0.1, 0.4, 0.3, 0.7, 0.5]
+  };
+
+  const handleCompare = () => {
+    setResult(comparePoints10D(pointA, pointB, metricProfile));
+  };
+
+  return (
+    <div>
+      <h1>10D Point Comparison Engine</h1>
+      <button onClick={handleCompare}>Compare</button>
+      {result && (
+        <pre style={{ marginTop: "1rem" }}>
+          {JSON.stringify(result, null, 2)}
+        </pre>
+      )}
+    </div>
+  );
+}
+`
+
+---
+
+6. Python: core engine function
+
+`python
+import math
+from typing import Dict, Any, List
+
+def comparepoints10d(pointA: Dict[str, Any],
+                       pointB: Dict[str, Any],
+                       metric_profile: Dict[str, Any]) -> Dict[str, Any]:
+    # 3D
+    dx = pointB["coords3d"]["x"] - pointA["coords3d"]["x"]
+    dy = pointB["coords3d"]["y"] - pointA["coords3d"]["y"]
+    dz = pointB["coords3d"]["z"] - pointA["coords3d"]["z"]
+
+    d3_direction: List[float] = [dx, dy, dz]
+    d3_euclidean = math.sqrt(dxdx + dydy + dz*dz)
+    d3_manhattan = abs(dx) + abs(dy) + abs(dz)
+    d3_chebyshev = max(abs(dx), abs(dy), abs(dz))
+
+    # D4
+    d4_relative = abs(pointB["d4"] - pointA["d4"])
+
+    # Brane dims 5–10
+    braneA = pointA["brane_dims"]
+    braneB = pointB["brane_dims"]
+
+    branestaticdistances: List[float] = []
+    branestaticangles: List[float] = []
+
+    for a, b in zip(braneA, braneB):
+        dd = abs(b - a)
+        da = math.atan(b) - math.atan(a)
+        branestaticdistances.append(dd)
+        branestaticangles.append(da)
+
+    compositestatic = math.sqrt(sum(dd*dd for dd in branestatic_distances))
+    compositeangle = math.sqrt(sum(da*da for da in branestatic_angles))
+
+    w = metric_profile["weights"]
+    total_distance = math.sqrt(
+        w["gamma3d"]  d3euclidean*2 +
+        w["gamma4"]  d4relative*2 +
+        w["gammastatic"]  compositestatic*2 +
+        w["gammaangle"]  compositeangle*2
+    )
+
+    return {
+        "pointaid": pointA["point_id"],
+        "pointbid": pointB["point_id"],
+        "d3euclidean": d3euclidean,
+        "d3manhattan": d3manhattan,
+        "d3chebyshev": d3chebyshev,
+        "d3directionvector": d3_direction,
+        "d4relative": d4relative,
+        "branestaticdistances": branestaticdistances,
+        "branestaticangles": branestaticangles,
+        "compositestaticdistance": composite_static,
+        "compositeangledistance": composite_angle,
+        "totaldistance": totaldistance
+    }
+
+if name == "main":
+    metric_profile = {
+        "metricprofileid": "mp-1",
+        "weights": {
+            "gamma_3d": 1.0,
+            "gamma_4": 1.0,
+            "gamma_static": 1.0,
+            "gamma_angle": 1.0
+        }
+    }
+
+    pointA = {
+        "point_id": "P1",
+        "coords_3d": {"x": 0.0, "y": 0.0, "z": 0.0},
+        "d4": 0.5,
+        "brane_dims": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+    }
+
+    pointB = {
+        "point_id": "P2",
+        "coords_3d": {"x": 1.0, "y": 2.0, "z": 3.0},
+        "d4": 0.8,
+        "brane_dims": [0.2, 0.1, 0.4, 0.3, 0.7, 0.5]
+    }
+
+    result = comparepoints10d(pointA, pointB, metric_profile)
+    print(result)
+`
