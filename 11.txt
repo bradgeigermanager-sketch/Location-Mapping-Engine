@@ -1,0 +1,219 @@
+1. Core ingredients
+
+You already have:
+
+- Point distance function \(D{\text{total}}(Pi, P_j)\)  
+- Metric profile (weights, metric family)  
+- Per‑dimension brane comparison data (distances, angles, rates)
+
+We’ll define:
+
+- Clustering algorithms using \(D_{\text{total}}\)  
+- Alignment algorithms using per‑dimension offsets and angles
+
+---
+
+2. Point clustering algorithms
+
+2.1 Distance function
+
+For any two points \(Pi, Pj\):
+
+\[
+d{ij} = D{\text{total}}(Pi, Pj)
+\]
+
+This is your single scalar from the metric profile.
+
+---
+
+2.2 k‑means‑style clustering (metric‑aware)
+
+1. Initialize centroids \(C1, \dots, CK\) as existing points.  
+2. Assignment step:  
+   For each point \(P_i\), assign to cluster:
+
+   \[
+   \text{cluster}(Pi) = \arg\min{k} D{\text{total}}(Pi, C_k)
+   \]
+
+3. Update step:  
+   For each cluster \(k\), recompute centroid in feature space:
+
+   - 3D centroid: average of \((x,y,z)\)  
+   - 4D centroid: average of \(d_4\)  
+   - 5D+ centroid: average of brane coordinates per dimension  
+
+   Then recompute derived comparison values for centroids if needed.
+
+4. Repeat until assignments stabilize or max iterations reached.
+
+> This gives you metric‑aware k‑means in your full 4+ dimensional space.
+
+---
+
+2.3 Hierarchical clustering
+
+1. Start with each point as its own cluster.  
+2. Define cluster distance as:
+
+   - Single‑link: \(\min d_{ij}\)  
+   - Complete‑link: \(\max d_{ij}\)  
+   - Average‑link: mean of \(d_{ij}\) over all pairs  
+
+3. Iteratively merge the two closest clusters until:
+
+   - A distance threshold is exceeded, or  
+   - A target number of clusters is reached.
+
+This is good when you want multi‑scale structure and dendrograms.
+
+---
+
+2.4 Density‑based clustering (DBSCAN‑style)
+
+Parameters:
+
+- \(\varepsilon\): neighborhood radius (in \(D_{\text{total}}\) units)  
+- minPts: minimum neighbors to form a dense region  
+
+Algorithm:
+
+1. For each point \(P_i\), find neighbors:
+
+   \[
+   N(Pi) = \{ Pj \mid D{\text{total}}(Pi, P_j) \le \varepsilon \}
+   \]
+
+2. If \(|N(Pi)| \ge \text{minPts}\), mark \(Pi\) as a core point.  
+3. Expand clusters from core points by recursively adding neighbors.  
+4. Points not reachable from any core point become noise.
+
+This is ideal when you want natural clusters without specifying K.
+
+---
+
+3. Point alignment algorithms
+
+Alignment = “how do I transform one set of points to best match another set?”
+
+We’ll use:
+
+- 3D alignment (rigid transform)  
+- Brane alignment (dimensions 4+)
+
+---
+
+3.1 3D rigid alignment (Procrustes / Kabsch)
+
+Given two sets of corresponding 3D points \(\{Ai\}\) and \(\{Bi\}\):
+
+1. Compute centroids \(\bar{A}, \bar{B}\).  
+2. Center points: \(A'i = Ai - \bar{A}\), \(B'i = Bi - \bar{B}\).  
+3. Compute covariance matrix:
+
+   \[
+   H = \sumi A'i (B'_i)^\top
+   \]
+
+4. SVD: \(H = U \Sigma V^\top\).  
+5. Rotation: \(R = V U^\top\).  
+6. Translation: \(t = \bar{B} - R \bar{A}\).  
+
+Transform:
+
+\[
+Ai^{\text{aligned}} = R Ai + t
+\]
+
+This minimizes 3D Euclidean error.
+
+---
+
+3.2 Brane alignment (dimensions 4+)
+
+You can align branes in two ways:
+
+A. 4D alignment
+
+Align the 4D separation scalars:
+
+\[
+\Delta d4 = d^{(B)}4 - d^{(A)}_4
+\]
+
+You can:
+
+- Shift one brane’s 4D coordinate by \(\Delta d_4\), or  
+- Treat \(\Delta d_4\) as a fixed offset in comparisons.
+
+B. 5D+ alignment (linear)
+
+Given brane coordinate vectors:
+
+- \(\mathbf{b}^{(A)}_i\) for points on brane A  
+- \(\mathbf{b}^{(B)}_i\) for corresponding points on brane B  
+
+You can solve for a linear transform:
+
+\[
+\mathbf{b}^{(B)}i \approx M \mathbf{b}^{(A)}i + \mathbf{c}
+\]
+
+Where:
+
+- \(M\) is a matrix (rotation/scale/shear in brane space)  
+- \(\mathbf{c}\) is a translation in brane dimensions  
+
+Solve via least squares:
+
+\[
+\min{M,\mathbf{c}} \sumi \left\| \mathbf{b}^{(B)}i - (M \mathbf{b}^{(A)}i + \mathbf{c}) \right\|^2
+\]
+
+This gives you a brane‑space alignment transform.
+
+---
+
+3.3 Full point alignment (3D + brane)
+
+To fully align two point sets:
+
+1. Align 3D using Kabsch/Procrustes.  
+2. Align 4D by shifting one brane’s \(d4\) by \(\Delta d4\).  
+3. Align 5D+ by solving for \(M, \mathbf{c}\) in brane space.  
+4. Recompute distances using the metric profile to verify alignment quality.
+
+You can define an alignment error:
+
+\[
+E{\text{align}} = \frac{1}{N} \sumi D{\text{total}}^2(P^{(A)}i, P^{(B)}_i)
+\]
+
+Lower is better.
+
+---
+
+4. How this plugs into your schemas
+
+- Point Comparison Schema:  
+  Already holds all per‑pair comparison results.
+
+- Brane Comparison Schema:  
+  Holds per‑dimension brane differences and rates.
+
+- Metric Profile Schema:  
+  Controls how distances are aggregated.
+
+- Cluster algorithms:  
+  Use \(D_{\text{total}}\) as the distance function.
+
+- Alignment algorithms:  
+  Use 3D coordinates + brane coordinates to compute transforms.
+
+---
+
+Next steps:
+
+- Encode cluster configuration as a schema (k, ε, minPts, etc.).  
+- Encode alignment transforms (R, t, M, c) as a reusable “alignment profile” schema.
