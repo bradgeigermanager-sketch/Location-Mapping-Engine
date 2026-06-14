@@ -1,0 +1,245 @@
+The core mathematical behavior of the brane‑to‑brane comparison layer:
+
+- Dimension 4:  
+  A fixed, time‑invariant scalar separation.
+
+- Dimensions 5+:  
+  For each dimension independently:  
+  - relative distance,  
+  - relative angle,  
+  - rate of change of distance,  
+  - rate of change of angle,  
+  derived by repeated measurements over time.
+
+To support this, we need a dedicated comparison schema that:
+
+1. Stores per‑dimension comparison data.  
+2. Stores per‑dimension temporal derivatives.  
+3. References two branes.  
+4. Is time‑invariant for the 4th dimension.  
+5. Is time‑aware for dimensions 5+.  
+6. Is atomic, DAG‑safe, and composable with the rest of LME.
+
+Below is the complete, improved system.
+
+---
+
+🧱 Updated Brane Schema
+This is the brane definition that can be paired and compared.
+
+`json
+{
+  "$id": "https://schemas.lme/brane/3.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Brane Schema",
+  "type": "object",
+
+  "properties": {
+    "brane_id": { "type": "string" },
+    "brane_version": { "type": "string" },
+
+    "d4_separation": {
+      "type": "number",
+      "description": "Fixed relational scalar separating this brane from others in the 4th dimension."
+    },
+
+    "brane_coordinates": {
+      "type": "array",
+      "description": "Coordinates for dimensions 5 and above.",
+      "items": { "type": "number" }
+    },
+
+    "brane_labels": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+
+    "brane_metric": {
+      "type": ["object", "null"],
+      "properties": {
+        "type": { "type": "string", "enum": ["euclidean", "riemannian", "custom"] },
+        "matrix": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "array",
+            "items": { "type": "number" }
+          }
+        }
+      }
+    }
+  },
+
+  "required": [
+    "brane_id",
+    "brane_version",
+    "d4_separation",
+    "brane_coordinates"
+  ]
+}
+`
+
+---
+
+🌍 Updated 3D Coordinates Schema
+Now explicitly tied to a brane.
+
+`json
+{
+  "$id": "https://schemas.lme/coordinates/3d/3.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME 3D Spatial Coordinates (Brane‑Linked)",
+  "type": "object",
+
+  "properties": {
+    "coordinate_system": {
+      "type": "string",
+      "enum": ["WGS84", "Cartesian3D", "ECEF"]
+    },
+
+    "point_3d": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      },
+      "required": ["x", "y", "z"]
+    },
+
+    "brane_ref": {
+      "type": "string",
+      "description": "Reference to the brane this 3D coordinate belongs to."
+    }
+  },
+
+  "required": ["coordinatesystem", "point3d", "brane_ref"]
+}
+`
+
+---
+
+🧬 Brane‑to‑Brane Comparison Schema (Improved)
+This schema now supports per‑dimension comparisons, including rates of change derived from repeated measurements.
+
+`json
+{
+  "$id": "https://schemas.lme/brane/comparison/2.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Brane-to-Brane Comparison Schema",
+  "type": "object",
+
+  "properties": {
+    "comparison_id": { "type": "string" },
+    "comparison_version": { "type": "string" },
+
+    "branearef": {
+      "type": "string",
+      "description": "Reference to the first brane."
+    },
+
+    "branebref": {
+      "type": "string",
+      "description": "Reference to the second brane."
+    },
+
+    "d4relativedistance": {
+      "type": "number",
+      "description": "Fixed, time-invariant relative separation in the 4th dimension."
+    },
+
+    "dim5plus": {
+      "type": "array",
+      "description": "Per-dimension comparison data for dimensions 5 and above.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "dimension_index": { "type": "integer", "minimum": 5 },
+
+          "relative_distance": {
+            "type": "number",
+            "description": "Distance between branes in this dimension."
+          },
+
+          "relative_angle": {
+            "type": "number",
+            "description": "Angle between branes in this dimension."
+          },
+
+          "distancechangerate": {
+            "type": "number",
+            "description": "Rate of change of distance over time."
+          },
+
+          "anglechangerate": {
+            "type": "number",
+            "description": "Rate of change of angle over time."
+          },
+
+          "measurement_history": {
+            "type": "array",
+            "description": "Historical measurements used to derive rates of change.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "timestamp": { "type": "string", "format": "date-time" },
+                "distance": { "type": "number" },
+                "angle": { "type": "number" }
+              },
+              "required": ["timestamp", "distance", "angle"]
+            }
+          }
+        },
+        "required": [
+          "dimension_index",
+          "relative_distance",
+          "relative_angle",
+          "distancechangerate",
+          "anglechangerate"
+        ]
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "comparison_id",
+    "comparison_version",
+    "branearef",
+    "branebref",
+    "d4relativedistance",
+    "dim5plus",
+    "meta"
+  ]
+}
+`
+
+---
+
+🧩 What This Gives You
+
+✔ A complete brane comparison system
+Every dimension ≥4 is now explicitly compared.
+
+✔ Time‑invariant 4D separation
+Stored once, never changes.
+
+✔ Time‑varying 5D+ comparisons
+Each dimension has:
+
+- relative distance  
+- relative angle  
+- rate of change of distance  
+- rate of change of angle  
+- measurement history  
+
+✔ Fully composable with the rest of LME
+3D coordinates → brane → brane comparisons → record schema.
