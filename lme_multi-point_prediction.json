@@ -1,0 +1,72 @@
+{
+  "$id": "https://schemas.lme/multipoint/prediction/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Multi-Point Prediction",
+  "type": "object",
+
+  "properties": {
+    "prediction_id": { "type": "string" },
+    "prediction_version": { "type": "string" },
+
+    "multipoint_model_ref": { "type": "string" },
+
+    "prediction_start_timestamp": { "type": "string", "format": "date-time" },
+    "prediction_end_timestamp": { "type": "string", "format": "date-time" },
+
+    "point_predictions": {
+      "type": "array",
+      "description": "Per-point predicted trajectories.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "point_id": { "type": "string" },
+          "trajectory_prediction_ref": {
+            "type": "string",
+            "description": "Reference to a single-point prediction schema."
+          }
+        },
+        "required": ["point_id", "trajectory_prediction_ref"]
+      }
+    },
+
+    "interaction_predictions": {
+      "type": "array",
+      "description": "Predicted pairwise or group relationships.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "relation_id": { "type": "string" },
+          "point_ids": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "predicted_brane_comparison_ref": {
+            "type": ["string", "null"],
+            "description": "Optional predicted brane comparison for the relation."
+          }
+        },
+        "required": ["relation_id", "point_ids"]
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["created_at", "created_by", "schema"]
+    }
+  },
+
+  "required": [
+    "prediction_id",
+    "prediction_version",
+    "multipoint_model_ref",
+    "prediction_start_timestamp",
+    "prediction_end_timestamp",
+    "point_predictions",
+    "meta"
+  ]
+}
