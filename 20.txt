@@ -1,0 +1,373 @@
+Below is the scenario‑level predictive system, the top of the entire LME predictive architecture.  
+This is the layer that ties together:
+
+- multiple points  
+- their trajectories  
+- their interactions  
+- their predictions  
+- their evaluations  
+- their forecasting accuracy classes  
+- and the scenario‑level outcome  
+
+This is the “whole‑system” predictive intelligence layer.
+
+---
+
+⭐ 1. Scenario Definition Schema
+A scenario is a container for everything: points, relationships, predictions, evaluations, and outcomes.
+
+`json
+{
+  "$id": "https://schemas.lme/scenario/definition/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Scenario Definition",
+  "type": "object",
+
+  "properties": {
+    "scenario_id": { "type": "string" },
+    "scenario_version": { "type": "string" },
+
+    "label": { "type": "string" },
+    "description": { "type": "string" },
+
+    "pointentityrefs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+
+    "trajectory_refs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+
+    "interactionstructureref": {
+      "type": ["string", "null"],
+      "description": "Reference to multi-point interaction graph."
+    },
+
+    "metricprofileref": { "type": "string" },
+
+    "forecastaccuracyprofile_ref": {
+      "type": ["string", "null"],
+      "description": "Optional accuracy profile for scenario-level scoring."
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "scenario_id",
+    "scenario_version",
+    "label",
+    "pointentityrefs",
+    "trajectory_refs",
+    "metricprofileref",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ 2. Scenario Prediction Schema
+This stores the entire predicted future of the scenario.
+
+`json
+{
+  "$id": "https://schemas.lme/scenario/prediction/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Scenario Prediction",
+  "type": "object",
+
+  "properties": {
+    "scenariopredictionid": { "type": "string" },
+    "scenariopredictionversion": { "type": "string" },
+
+    "scenario_ref": { "type": "string" },
+    "multipointmodelref": { "type": "string" },
+
+    "predictionstarttimestamp": { "type": "string", "format": "date-time" },
+    "predictionendtimestamp": { "type": "string", "format": "date-time" },
+
+    "point_predictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "point_id": { "type": "string" },
+          "prediction_ref": { "type": "string" }
+        },
+        "required": ["pointid", "predictionref"]
+      }
+    },
+
+    "interaction_predictions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "relation_id": { "type": "string" },
+          "predictedbranecomparison_ref": { "type": ["string", "null"] }
+        },
+        "required": ["relation_id"]
+      }
+    },
+
+    "scenariostatesummary": {
+      "type": "object",
+      "properties": {
+        "predictedcentroid3d": {
+          "type": "array",
+          "items": { "type": "number" }
+        },
+        "predictedcentroidbrane": {
+          "type": "array",
+          "items": { "type": "number" }
+        },
+        "predictedspread3d": { "type": "number" },
+        "predictedspreadbrane": { "type": "number" }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "scenariopredictionid",
+    "scenariopredictionversion",
+    "scenario_ref",
+    "multipointmodelref",
+    "predictionstarttimestamp",
+    "predictionendtimestamp",
+    "point_predictions",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ 3. Scenario Evaluation Schema
+This evaluates the entire scenario prediction against actual outcomes.
+
+`json
+{
+  "$id": "https://schemas.lme/scenario/evaluation/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Scenario Evaluation",
+  "type": "object",
+
+  "properties": {
+    "scenarioevaluationid": { "type": "string" },
+    "scenarioevaluationversion": { "type": "string" },
+
+    "scenariopredictionref": { "type": "string" },
+    "actualtrajectoryrefs": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+
+    "metricprofileref": { "type": "string" },
+
+    "perpointevaluations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "point_id": { "type": "string" },
+          "trajectoryevaluationref": { "type": "string" }
+        },
+        "required": ["pointid", "trajectoryevaluation_ref"]
+      }
+    },
+
+    "interaction_evaluations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "relation_id": { "type": "string" },
+          "error_score": { "type": "number" }
+        },
+        "required": ["relationid", "errorscore"]
+      }
+    },
+
+    "scenarioerrorcomponents": {
+      "type": "object",
+      "properties": {
+        "aggregatepointerror": { "type": "number" },
+        "aggregateinteractionerror": { "type": "number" },
+        "aggregatespreaderror": { "type": "number" }
+      },
+      "required": [
+        "aggregatepointerror",
+        "aggregateinteractionerror",
+        "aggregatespreaderror"
+      ]
+    },
+
+    "scenariototalerror": { "type": "number" },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "scenarioevaluationid",
+    "scenarioevaluationversion",
+    "scenariopredictionref",
+    "actualtrajectoryrefs",
+    "metricprofileref",
+    "perpointevaluations",
+    "scenarioerrorcomponents",
+    "scenariototalerror",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ 4. Scenario Forecasting Accuracy Record Schema
+This assigns the scenario to an accuracy class.
+
+`json
+{
+  "$id": "https://schemas.lme/scenario/forecastaccuracyrecord/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Scenario Forecasting Accuracy Record",
+  "type": "object",
+
+  "properties": {
+    "scenarioaccuracyrecord_id": { "type": "string" },
+    "scenarioaccuracyrecord_version": { "type": "string" },
+
+    "scenarioevaluationref": { "type": "string" },
+    "accuracyprofileref": { "type": "string" },
+    "assignedclassref": { "type": "string" },
+
+    "scenariototalerror": { "type": "number" },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "scenarioaccuracyrecord_id",
+    "scenarioaccuracyrecord_version",
+    "scenarioevaluationref",
+    "accuracyprofileref",
+    "assignedclassref",
+    "scenariototalerror",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ 5. Scenario‑Level Algorithms
+
+A. Scenario state vector
+
+Stack all point states:
+
+\[
+\mathbf{S}(t) = [s1(t), s2(t), \dots, s_N(t)]^\top
+\]
+
+Each \(s_i(t)\) includes:
+
+- 3D  
+- 4D  
+- 5D+ brane coordinates  
+
+---
+
+B. Scenario prediction
+
+Using the multi‑point model:
+
+\[
+\mathbf{S}(t+\Delta t) = F(\mathbf{S}(t))
+\]
+
+Where \(F\) may be:
+
+- independent  
+- coupled linear  
+- interaction graph  
+- ML model  
+
+---
+
+C. Scenario error
+
+\[
+E_{\text{scenario}} =
+\alpha \cdot \frac{1}{N}\sumi Ei +
+\beta \cdot \frac{1}{M}\sum{(i,j)} E{ij} +
+\gamma \cdot E_{\text{spread}}
+\]
+
+Where:
+
+- \(E_i\): per‑point error  
+- \(E_{ij}\): interaction error  
+- \(E_{\text{spread}}\): difference in predicted vs actual scenario spread  
+- \(\alpha, \beta, \gamma\): scenario‑level weights  
+
+---
+
+D. Scenario accuracy class assignment
+
+Using the scenario’s total error and the accuracy profile:
+
+\[
+\text{class} = \text{AccuracyProfile}(E_{\text{scenario}})
+\]
+
+---
+
+⭐ 6. What You Now Have
+
+You now have the complete scenario‑level predictive intelligence system, including:
+
+- Scenario definition  
+- Scenario prediction  
+- Scenario evaluation  
+- Scenario accuracy classification  
+- Scenario‑level algorithms  
+
+This is the top of the LME predictive stack.
