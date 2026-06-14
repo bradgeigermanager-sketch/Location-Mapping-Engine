@@ -1,0 +1,291 @@
+Below is the complete, atomic, schema‑driven system for trajectory similarity in the LME framework.  
+This includes:
+
+- A Trajectory Similarity Record Schema  
+- A Trajectory Similarity Calculation Schema  
+- The mathematical algorithms used to compute similarity across:  
+  - 3D paths  
+  - 4D separation evolution  
+  - 5D+ brane‑space evolution  
+- A unified similarity score driven by your metric profile  
+
+Everything is modular, DAG‑safe, and consistent with the existing LME architecture.
+
+---
+
+⭐ 1. Trajectory Similarity Record Schema
+This schema stores the results of comparing two trajectories.
+
+`json
+{
+  "$id": "https://schemas.lme/trajectory/similarity_record/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Trajectory Similarity Record",
+  "type": "object",
+
+  "properties": {
+    "similarity_id": { "type": "string" },
+    "similarity_version": { "type": "string" },
+
+    "trajectoryaref": { "type": "string" },
+    "trajectorybref": { "type": "string" },
+
+    "metricprofileref": {
+      "type": "string",
+      "description": "Metric profile used for similarity calculations."
+    },
+
+    "alignmentprofileref": {
+      "type": ["string", "null"],
+      "description": "Optional alignment profile used before similarity computation."
+    },
+
+    "similarity_components": {
+      "type": "object",
+      "properties": {
+        "similarity_3d": { "type": "number" },
+        "similarity_4d": { "type": "number" },
+        "similarity5plusstatic": { "type": "number" },
+        "similarity5plusdynamic": { "type": "number" },
+        "temporalalignmentcost": { "type": "number" }
+      },
+      "required": [
+        "similarity_3d",
+        "similarity_4d",
+        "similarity5plusstatic",
+        "similarity5plusdynamic",
+        "temporalalignmentcost"
+      ]
+    },
+
+    "totalsimilarityscore": {
+      "type": "number",
+      "description": "Final similarity score after metric profile weighting."
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "similarity_id",
+    "similarity_version",
+    "trajectoryaref",
+    "trajectorybref",
+    "metricprofileref",
+    "similarity_components",
+    "totalsimilarityscore",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ 2. Trajectory Similarity Calculation Schema
+This schema stores the intermediate calculations used to produce the similarity record.
+
+`json
+{
+  "$id": "https://schemas.lme/trajectory/similarity_calculation/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Trajectory Similarity Calculation",
+  "type": "object",
+
+  "properties": {
+    "calculation_id": { "type": "string" },
+    "calculation_version": { "type": "string" },
+
+    "trajectoryaref": { "type": "string" },
+    "trajectorybref": { "type": "string" },
+
+    "metricprofileref": { "type": "string" },
+
+    "temporalalignmentmethod": {
+      "type": "string",
+      "enum": ["dtw", "segmentwise", "synchronized"],
+      "description": "Dynamic time warping, segmentwise comparison, or synchronized timestamps."
+    },
+
+    "aligned_pairs": {
+      "type": "array",
+      "description": "Pairs of aligned trajectory samples.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp_a": { "type": "string", "format": "date-time" },
+          "timestamp_b": { "type": "string", "format": "date-time" },
+
+          "distance_3d": { "type": "number" },
+          "d4_difference": { "type": "number" },
+
+          "branedim5plusdistance_deltas": {
+            "type": "array",
+            "items": { "type": "number" }
+          },
+          "branedim5plusangle_deltas": {
+            "type": "array",
+            "items": { "type": "number" }
+          },
+
+          "branedim5plusdistanceratedeltas": {
+            "type": "array",
+            "items": { "type": "number" }
+          },
+          "branedim5plusangleratedeltas": {
+            "type": "array",
+            "items": { "type": "number" }
+          },
+
+          "pair_cost": { "type": "number" }
+        },
+        "required": [
+          "timestamp_a",
+          "timestamp_b",
+          "distance_3d",
+          "d4_difference",
+          "branedim5plusdistance_deltas",
+          "branedim5plusangle_deltas",
+          "branedim5plusdistanceratedeltas",
+          "branedim5plusangleratedeltas",
+          "pair_cost"
+        ]
+      }
+    },
+
+    "totalalignmentcost": { "type": "number" },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "calculation_id",
+    "calculation_version",
+    "trajectoryaref",
+    "trajectorybref",
+    "metricprofileref",
+    "temporalalignmentmethod",
+    "aligned_pairs",
+    "totalalignmentcost",
+    "meta"
+  ]
+}
+`
+
+---
+
+⭐ 3. Trajectory Similarity Algorithms (Complete Set)
+
+A. Temporal alignment
+
+1. Dynamic Time Warping (DTW)
+Aligns trajectories with different sampling rates or speeds.
+
+Cost matrix:
+
+\[
+C(i,j) = \text{pair\cost}(Pi, Q_j)
+\]
+
+DTW recurrence:
+
+\[
+D(i,j) = C(i,j) + \min(D(i-1,j), D(i,j-1), D(i-1,j-1))
+\]
+
+2. Segmentwise alignment
+Compare segment‑to‑segment using average metrics.
+
+3. Synchronized alignment
+Compare only matching timestamps.
+
+---
+
+B. Per‑pair cost function
+
+For aligned samples \(Pi\) and \(Qj\):
+
+\[
+\text{pair\_cost} = 
+\gamma3 D{3D}^2 +
+\gamma4 D4^2 +
+\gammas \sum{k=5}^{n} (\Delta d_k)^2 +
+\gammaa \sum{k=5}^{n} (\Delta \theta_k)^2 +
+\gammad \sum{k=5}^{n} (\dot{d}k^2 + \beta \dot{\theta}k^2)
+\]
+
+All weights come from the metric profile.
+
+---
+
+C. Similarity components
+
+1. 3D similarity
+Inverse of average 3D distance:
+
+\[
+S{3D} = \frac{1}{1 + \overline{D{3D}}}
+\]
+
+2. 4D similarity
+\[
+S{4D} = \frac{1}{1 + \overline{D4}}
+\]
+
+3. 5D+ static similarity
+\[
+S{5+}^{\text{static}} = \frac{1}{1 + \sqrt{\sumk (\Delta d_k)^2}}
+\]
+
+4. 5D+ dynamic similarity
+\[
+S{5+}^{\text{dynamic}} = \frac{1}{1 + \sqrt{\sumk (\dot{d}k^2 + \beta \dot{\theta}k^2)}}
+\]
+
+---
+
+D. Total similarity score
+
+\[
+S_{\text{total}} =
+\gamma3 S{3D} +
+\gamma4 S{4D} +
+\gammas S{5+}^{\text{static}} +
+\gammad S{5+}^{\text{dynamic}} -
+\lambda \cdot \text{temporal\alignment\cost}
+\]
+
+Where:
+
+- \(\gamma\) weights come from the metric profile  
+- \(\lambda\) penalizes temporal misalignment (DTW warping)  
+
+---
+
+⭐ 4. What You Now Have
+
+You now have a complete trajectory similarity engine, including:
+
+- Trajectory Similarity Record Schema  
+- Trajectory Similarity Calculation Schema  
+- Temporal alignment algorithms  
+- Per‑pair cost function  
+- Similarity components  
+- Final similarity score formula  
+
+This is the full, production‑ready system for comparing trajectories in 3D + brane dimensions.
