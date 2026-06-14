@@ -1,0 +1,251 @@
+Done.  
+Below is the fully integrated, production‑ready Metric Profile Schema, now wired into the brane‑comparison system so every comparison explicitly declares which metric semantics were used.
+
+This completes the brane‑to‑brane comparison architecture:  
+- Brane Schema — defines hyperspatial structure  
+- 3D Coordinates Schema — ties 3D points to branes  
+- Brane Comparison Schema — stores per‑dimension distances, angles, and rates  
+- Metric Profile Schema — defines how distances are computed  
+
+And now the comparison schema references the metric profile.
+
+---
+
+🧱 1. Metric Profile Schema (Final Version)
+This schema defines the mathematical rules for brane‑to‑brane distance calculations.
+
+`json
+{
+  "$id": "https://schemas.lme/brane/metric_profile/1.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Brane Metric Profile",
+  "type": "object",
+
+  "properties": {
+    "metricprofileid": { "type": "string" },
+    "metricprofileversion": { "type": "string" },
+
+    "metric_family": {
+      "type": "string",
+      "enum": ["euclidean", "riemannian", "custom"],
+      "description": "Determines how distances in dimensions 5+ are aggregated."
+    },
+
+    "weights": {
+      "type": "object",
+      "description": "Global weights for composite distance.",
+      "properties": {
+        "gamma_4": {
+          "type": "number",
+          "description": "Weight for 4D separation component."
+        },
+        "gamma_static": {
+          "type": "number",
+          "description": "Weight for static distance in dimensions 5+."
+        },
+        "gamma_angle": {
+          "type": "number",
+          "description": "Weight for static angle contribution in dimensions 5+."
+        },
+        "gamma_dynamic": {
+          "type": "number",
+          "description": "Weight for dynamic divergence (rates of change)."
+        },
+        "betaanglerate": {
+          "type": "number",
+          "description": "Weight for angular rate vs distance rate in dynamic term."
+        }
+      },
+      "required": [
+        "gamma_4",
+        "gamma_static",
+        "gamma_angle",
+        "gamma_dynamic",
+        "betaanglerate"
+      ]
+    },
+
+    "perdimensionfactors": {
+      "type": "array",
+      "description": "Optional per-dimension angle weights and scaling for dimensions 5+.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "dimension_index": {
+            "type": "integer",
+            "minimum": 5
+          },
+          "alpha_angle": {
+            "type": "number",
+            "description": "Weight for angle contribution in this dimension."
+          },
+          "scale_distance": {
+            "type": "number",
+            "description": "Scaling factor for distance in this dimension."
+          },
+          "scale_angle": {
+            "type": "number",
+            "description": "Scaling factor for angle in this dimension."
+          }
+        },
+        "required": ["dimension_index"]
+      }
+    },
+
+    "riemannian_metric": {
+      "type": ["object", "null"],
+      "description": "Metric tensor for dimensions 5+ when metric_family = 'riemannian'.",
+      "properties": {
+        "matrix": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": { "type": "number" }
+          }
+        }
+      }
+    },
+
+    "custommetricreference": {
+      "type": ["string", "null"],
+      "description": "Reference to custom metric implementation if metric_family = 'custom'."
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "metricprofileid",
+    "metricprofileversion",
+    "metric_family",
+    "weights",
+    "meta"
+  ]
+}
+`
+
+---
+
+🧬 2. Updated Brane Comparison Schema (Now References Metric Profile)
+This is the final, integrated comparison schema.
+
+`json
+{
+  "$id": "https://schemas.lme/brane/comparison/3.0.0",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LME Brane-to-Brane Comparison Schema",
+  "type": "object",
+
+  "properties": {
+    "comparison_id": { "type": "string" },
+    "comparison_version": { "type": "string" },
+
+    "metricprofileref": {
+      "type": "string",
+      "description": "Reference to the metric profile used for this comparison."
+    },
+
+    "branearef": {
+      "type": "string",
+      "description": "Reference to the first brane."
+    },
+
+    "branebref": {
+      "type": "string",
+      "description": "Reference to the second brane."
+    },
+
+    "d4relativedistance": {
+      "type": "number",
+      "description": "Fixed, time-invariant relative separation in the 4th dimension."
+    },
+
+    "dim5plus": {
+      "type": "array",
+      "description": "Per-dimension comparison data for dimensions 5 and above.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "dimension_index": { "type": "integer", "minimum": 5 },
+
+          "relative_distance": { "type": "number" },
+          "relative_angle": { "type": "number" },
+
+          "distancechangerate": { "type": "number" },
+          "anglechangerate": { "type": "number" },
+
+          "measurement_history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "timestamp": { "type": "string", "format": "date-time" },
+                "distance": { "type": "number" },
+                "angle": { "type": "number" }
+              },
+              "required": ["timestamp", "distance", "angle"]
+            }
+          }
+        },
+        "required": [
+          "dimension_index",
+          "relative_distance",
+          "relative_angle",
+          "distancechangerate",
+          "anglechangerate"
+        ]
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "properties": {
+        "created_at": { "type": "string", "format": "date-time" },
+        "created_by": { "type": "string" },
+        "schema": { "type": "string" }
+      },
+      "required": ["createdat", "createdby", "schema"]
+    }
+  },
+
+  "required": [
+    "comparison_id",
+    "comparison_version",
+    "metricprofileref",
+    "branearef",
+    "branebref",
+    "d4relativedistance",
+    "dim5plus",
+    "meta"
+  ]
+}
+`
+
+---
+
+🧩 3. What This Gives You
+
+✔ Fully declarative distance semantics
+Every comparison explicitly states which metric profile was used.
+
+✔ Reproducible comparisons
+Two systems using the same metric profile produce identical results.
+
+✔ Extensible
+You can define multiple metric profiles:
+
+- Physics‑accurate  
+- Machine‑learning‑optimized  
+- Application‑specific  
+- Custom Riemannian manifolds
+
+✔ DAG‑safe
+Metric profiles never reference branes; brane comparisons reference metric profiles.
